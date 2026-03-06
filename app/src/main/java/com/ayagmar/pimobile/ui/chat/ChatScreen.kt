@@ -17,8 +17,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -804,27 +807,39 @@ private fun InlineRunProgressCard(
     phase: LiveRunPhase,
     elapsedSeconds: Long,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .fillMaxHeight()
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                ),
+        )
+        Card(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
         ) {
-            Text(
-                text = "Assistant",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            LiveRunProgressIndicator(
-                phase = phase,
-                elapsedSeconds = elapsedSeconds,
-                modifier = Modifier,
-            )
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Assistant",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                LiveRunProgressIndicator(
+                    phase = phase,
+                    elapsedSeconds = elapsedSeconds,
+                    modifier = Modifier,
+                )
+            }
         }
     }
 }
@@ -1364,36 +1379,48 @@ private fun AssistantCard(
     item: ChatTimelineItem.Assistant,
     onToggleThinkingExpansion: (String) -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .fillMaxHeight()
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                ),
+        )
+        Card(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
         ) {
-            val title = if (item.isStreaming) "Assistant (streaming)" else "Assistant"
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val title = if (item.isStreaming) "Assistant (streaming)" else "Assistant"
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
 
-            AssistantMessageContent(
-                text = item.text,
-                modifier = Modifier.fillMaxWidth(),
-            )
+                AssistantMessageContent(
+                    text = item.text,
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            ThinkingBlock(
-                thinking = item.thinking,
-                isThinkingComplete = item.isThinkingComplete,
-                isThinkingExpanded = item.isThinkingExpanded,
-                itemId = item.id,
-                onToggleThinkingExpansion = onToggleThinkingExpansion,
-            )
+                ThinkingBlock(
+                    thinking = item.thinking,
+                    isThinkingComplete = item.isThinkingComplete,
+                    isThinkingExpanded = item.isThinkingExpanded,
+                    itemId = item.id,
+                    onToggleThinkingExpansion = onToggleThinkingExpansion,
+                )
+            }
         }
     }
 }
@@ -1407,7 +1434,7 @@ private fun AssistantMessageContent(
         Text(
             text = "(empty)",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = modifier,
         )
         return
@@ -1418,7 +1445,7 @@ private fun AssistantMessageContent(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = modifier,
         )
         return
@@ -1437,7 +1464,7 @@ private fun AssistantMessageContent(
                         Text(
                             text = block.text,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
