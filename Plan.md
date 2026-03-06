@@ -66,7 +66,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
   - Duration or token count indicator
   - Visually distinct treatment (dashed border, muted palette)
 
-- [ ] **4.3 Tool card refinements**
+- [x] **4.3 Tool card refinements**
   - Progress indicator while tool is running (not just streaming dot)
   - Better truncation UX for long outputs (first + last lines, expandable middle)
   - Consistent syntax highlighting (regex for tool output vs Prism4j for diffs)

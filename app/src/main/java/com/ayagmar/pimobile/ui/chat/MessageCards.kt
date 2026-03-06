@@ -39,6 +39,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,6 +71,9 @@ import coil.compose.AsyncImage
 import com.ayagmar.pimobile.chat.ChatTimelineItem
 
 private const val COLLAPSED_OUTPUT_LENGTH = 280
+private const val COLLAPSED_HEAD_LINES = 3
+private const val COLLAPSED_TAIL_LINES = 2
+private const val SMART_TRUNCATION_MIN_LINES = 8
 private const val THINKING_COLLAPSE_THRESHOLD = 280
 private const val THINKING_EXPAND_ANIM_MS = 250
 private const val THINKING_DASH_INTERVAL_PX = 8f
@@ -709,54 +713,130 @@ private fun ToolCard(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             } else {
-                val displayOutput =
-                    if (item.isCollapsed && item.output.length > COLLAPSED_OUTPUT_LENGTH) {
-                        item.output.take(COLLAPSED_OUTPUT_LENGTH) + "…"
-                    } else {
-                        item.output
-                    }
+                ToolOutputContent(
+                    item = item,
+                    onToggleToolExpansion = onToggleToolExpansion,
+                )
+            }
 
-                val rawOutput = displayOutput.ifBlank { "(no output yet)" }
-                val shouldHighlight = !item.isStreaming && rawOutput.length <= TOOL_HIGHLIGHT_MAX_LENGTH
-
-                SelectionContainer {
-                    if (shouldHighlight) {
-                        val inferredLanguage = inferLanguageFromToolContext(item)
-                        val syntaxColors = SyntaxHighlightColors(
-                            comment = MaterialTheme.colorScheme.outline,
-                            string = MaterialTheme.colorScheme.tertiary,
-                            number = MaterialTheme.colorScheme.secondary,
-                            keyword = MaterialTheme.colorScheme.primary,
-                        )
-                        val spans = remember(rawOutput, inferredLanguage) {
-                            PrismHighlighter.highlight(content = rawOutput, language = inferredLanguage)
-                        }
-                        Text(
-                            text = buildPrismHighlightedString(rawOutput, spans, MaterialTheme.colorScheme.onSurface, syntaxColors),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = PiCodeFontFamily,
-                        )
-                    } else {
-                        Text(
-                            text = rawOutput,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = PiCodeFontFamily,
-                        )
-                    }
-                }
-
-                if (item.output.length > COLLAPSED_OUTPUT_LENGTH) {
-                    TextButton(onClick = { onToggleToolExpansion(item.id) }) {
-                        Icon(
-                            imageVector = if (item.isCollapsed) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(if (item.isCollapsed) "Expand" else "Collapse")
-                    }
-                }
+            // Linear progress bar for streaming tools
+            if (item.isStreaming) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .height(2.dp),
+                )
             }
         }
+    }
+}
+
+@Suppress("LongMethod")
+@Composable
+private fun ToolOutputContent(
+    item: ChatTimelineItem.Tool,
+    onToggleToolExpansion: (String) -> Unit,
+) {
+    val outputLines = remember(item.output) { item.output.lines() }
+    val totalLines = outputLines.size
+    val useSmartTruncation = item.isCollapsed &&
+        totalLines >= SMART_TRUNCATION_MIN_LINES &&
+        item.output.length > COLLAPSED_OUTPUT_LENGTH
+
+    if (useSmartTruncation) {
+        // Smart truncation: show head + ... + tail
+        val headLines = outputLines.take(COLLAPSED_HEAD_LINES)
+        val tailLines = outputLines.takeLast(COLLAPSED_TAIL_LINES)
+        val hiddenCount = totalLines - COLLAPSED_HEAD_LINES - COLLAPSED_TAIL_LINES
+
+        val headText = headLines.joinToString("\n")
+        val tailText = tailLines.joinToString("\n")
+
+        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            SelectionContainer {
+                ToolOutputText(
+                    text = headText,
+                    item = item,
+                )
+            }
+
+            TextButton(
+                onClick = { onToggleToolExpansion(item.id) },
+                modifier = Modifier.padding(vertical = 2.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text("$hiddenCount lines hidden \u2014 show all")
+            }
+
+            SelectionContainer {
+                ToolOutputText(
+                    text = tailText,
+                    item = item,
+                )
+            }
+        }
+    } else {
+        val displayOutput = if (item.isCollapsed && item.output.length > COLLAPSED_OUTPUT_LENGTH) {
+            item.output.take(COLLAPSED_OUTPUT_LENGTH) + "\u2026"
+        } else {
+            item.output
+        }
+        val rawOutput = displayOutput.ifBlank { "(no output yet)" }
+
+        SelectionContainer {
+            ToolOutputText(
+                text = rawOutput,
+                item = item,
+            )
+        }
+
+        if (item.output.length > COLLAPSED_OUTPUT_LENGTH) {
+            TextButton(onClick = { onToggleToolExpansion(item.id) }) {
+                Icon(
+                    imageVector = if (item.isCollapsed) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(if (item.isCollapsed) "Expand" else "Collapse")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolOutputText(
+    text: String,
+    item: ChatTimelineItem.Tool,
+) {
+    val shouldHighlight = !item.isStreaming && text.length <= TOOL_HIGHLIGHT_MAX_LENGTH
+
+    if (shouldHighlight) {
+        val inferredLanguage = inferLanguageFromToolContext(item)
+        val syntaxColors = SyntaxHighlightColors(
+            comment = MaterialTheme.colorScheme.outline,
+            string = MaterialTheme.colorScheme.tertiary,
+            number = MaterialTheme.colorScheme.secondary,
+            keyword = MaterialTheme.colorScheme.primary,
+        )
+        val spans = remember(text, inferredLanguage) {
+            PrismHighlighter.highlight(content = text, language = inferredLanguage)
+        }
+        Text(
+            text = buildPrismHighlightedString(text, spans, MaterialTheme.colorScheme.onSurface, syntaxColors),
+            style = MaterialTheme.typography.bodyMedium,
+            fontFamily = PiCodeFontFamily,
+        )
+    } else {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontFamily = PiCodeFontFamily,
+        )
     }
 }
 
