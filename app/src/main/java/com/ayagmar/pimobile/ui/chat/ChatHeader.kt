@@ -205,27 +205,16 @@ internal fun ChatHeader(
             )
         }
 
-        // Compact model/thinking controls
-        ModelThinkingControls(
+        // Compact model/thinking controls + context usage in a single row
+        CompactControlsRow(
             currentModel = currentModel,
             thinkingLevel = thinkingLevel,
+            contextUsageLabel = contextUsageLabel,
             onSetThinkingLevel = callbacks.onSetThinkingLevel,
             onShowModelPicker = callbacks.onShowModelPicker,
+            onShowStatsSheet = callbacks.onShowStatsSheet,
+            onRefreshStats = callbacks.onRefreshStats,
         )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AssistChip(
-                onClick = callbacks.onShowStatsSheet,
-                label = { Text(contextUsageLabel) },
-            )
-            TextButton(onClick = callbacks.onRefreshStats) {
-                Text("Refresh")
-            }
-        }
 
         // Error message if any
         errorMessage?.let { message ->
@@ -240,78 +229,60 @@ internal fun ChatHeader(
 
 @Suppress("LongMethod", "LongParameterList")
 @Composable
-private fun ModelThinkingControls(
+private fun CompactControlsRow(
     currentModel: ModelInfo?,
     thinkingLevel: String?,
+    contextUsageLabel: String,
     onSetThinkingLevel: (String) -> Unit,
     onShowModelPicker: () -> Unit,
+    onShowStatsSheet: () -> Unit,
+    onRefreshStats: () -> Unit,
 ) {
     var showThinkingMenu by remember { mutableStateOf(false) }
 
-    val modelText = currentModel?.name ?: "Select model"
-    val thinkingText = thinkingLevel?.uppercase() ?: "OFF"
+    val modelText = currentModel?.name ?: "Model"
+    val thinkingText = formatCompactThinkingLevel(thinkingLevel)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OutlinedButton(
+        // Model chip
+        AssistChip(
             onClick = onShowModelPicker,
-            modifier = Modifier.weight(1f),
-            contentPadding =
-                PaddingValues(
-                    horizontal = 12.dp,
-                    vertical = 6.dp,
-                ),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
+            label = {
                 Text(
                     text = modelText,
-                    style = MaterialTheme.typography.labelMedium,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall,
                 )
-            }
-        }
+            },
+            modifier = Modifier.weight(1f),
+        )
 
-        // Thinking level selector
-        Box(modifier = Modifier.wrapContentWidth()) {
-            OutlinedButton(
+        // Thinking level chip + dropdown
+        Box {
+            AssistChip(
                 onClick = { showThinkingMenu = true },
-                contentPadding =
-                    PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = 6.dp,
-                    ),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = thinkingText,
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
+                label = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = thinkingText,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                },
+            )
 
             DropdownMenu(
                 expanded = showThinkingMenu,
@@ -328,6 +299,44 @@ private fun ModelThinkingControls(
                 }
             }
         }
+
+        // Context usage chip
+        AssistChip(
+            onClick = onShowStatsSheet,
+            label = {
+                Text(
+                    text = contextUsageLabel,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            },
+            modifier = Modifier.weight(1f),
+        )
+
+        // Refresh icon button
+        IconButton(
+            onClick = onRefreshStats,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Refresh stats",
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+private fun formatCompactThinkingLevel(level: String?): String {
+    return when (level?.lowercase()) {
+        null, "off" -> "Off"
+        "minimal" -> "Min"
+        "low" -> "Low"
+        "medium" -> "Med"
+        "high" -> "High"
+        "xhigh" -> "XHi"
+        else -> level.take(3).replaceFirstChar { it.uppercase() }
     }
 }
 
