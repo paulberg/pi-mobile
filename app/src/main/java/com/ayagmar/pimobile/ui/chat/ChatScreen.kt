@@ -6,6 +6,8 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -15,8 +17,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -84,6 +89,7 @@ private fun resolveDocumentDisplayName(
 }
 
 private const val STREAMING_FRAME_LOG_TAG = "StreamingFrameMetrics"
+private const val HEADER_COLLAPSE_ANIMATION_MS = 220
 
 internal data class ChatCallbacks(
     val onToggleToolExpansion: (String) -> Unit,
@@ -420,36 +426,42 @@ private fun ChatScreenContent(
         isTimelineEmpty = state.timeline.isEmpty() && !state.isLoading,
     )
 
+    val sectionSpacing = if (isRunActive) 8.dp else 12.dp
+
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp).imePadding(),
-        verticalArrangement = Arrangement.spacedBy(if (isRunActive) 8.dp else 12.dp),
     ) {
-        ChatHeader(
-            isRunActive = isRunActive,
-            isSyncingSession = state.isSyncingSession,
-            sessionCoherencyWarning = state.sessionCoherencyWarning,
-            extensionTitle = state.extensionTitle,
-            connectionState = state.connectionState,
-            currentModel = state.currentModel,
-            thinkingLevel = state.thinkingLevel,
-            contextUsageLabel = formatContextUsageLabel(state.sessionStats, state.currentModel),
-            errorMessage = state.errorMessage,
-            showControls = showHeaderControls,
-            onOpenDrawer = onOpenDrawer,
-            callbacks = callbacks,
-        )
-
-        // Extension widgets (above editor) — collapse with header controls
-        AnimatedVisibility(
-            visible = showHeaderControls,
-            enter = slideInVertically() + fadeIn(),
-            exit = slideOutVertically() + fadeOut(),
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(animationSpec = tween(durationMillis = HEADER_COLLAPSE_ANIMATION_MS)),
         ) {
-            ExtensionWidgets(
-                widgets = state.extensionWidgets,
-                placement = "aboveEditor",
+            ChatHeader(
+                isRunActive = isRunActive,
+                isSyncingSession = state.isSyncingSession,
+                sessionCoherencyWarning = state.sessionCoherencyWarning,
+                extensionTitle = state.extensionTitle,
+                connectionState = state.connectionState,
+                currentModel = state.currentModel,
+                thinkingLevel = state.thinkingLevel,
+                contextUsageLabel = formatContextUsageLabel(state.sessionStats, state.currentModel),
+                errorMessage = state.errorMessage,
+                showControls = showHeaderControls,
+                onOpenDrawer = onOpenDrawer,
+                callbacks = callbacks,
             )
+
+            if (showHeaderControls) {
+                Spacer(modifier = Modifier.height(sectionSpacing))
+                ExtensionWidgets(
+                    widgets = state.extensionWidgets,
+                    placement = "aboveEditor",
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.height(sectionSpacing))
 
         Box(modifier = Modifier.weight(1f)) {
             ChatBody(
@@ -469,11 +481,15 @@ private fun ChatScreenContent(
             )
         }
 
+        Spacer(modifier = Modifier.height(sectionSpacing))
+
         // Extension widgets (below editor)
         ExtensionWidgets(
             widgets = state.extensionWidgets,
             placement = "belowEditor",
         )
+
+        Spacer(modifier = Modifier.height(sectionSpacing))
 
         PromptControls(
             isStreaming = isRunActive,
@@ -500,6 +516,7 @@ private fun ChatScreenContent(
         )
 
         if (showExtensionStatusStrip) {
+            Spacer(modifier = Modifier.height(sectionSpacing))
             ExtensionStatusStrip(statuses = state.extensionStatuses)
         }
     }
