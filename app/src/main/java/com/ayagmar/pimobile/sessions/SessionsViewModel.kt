@@ -76,6 +76,7 @@ class SessionsViewModel(
                 selectedCwd = readPreferredCwd(hostId),
                 isLoading = true,
                 groups = emptyList(),
+                recentCwds = cwdPreferenceStore.getRecentCwds(hostId),
                 activeSessionPath = null,
                 isForkPickerVisible = false,
                 forkCandidates = emptyList(),
@@ -185,6 +186,10 @@ class SessionsViewModel(
             }
 
             persistPreferredCwd(hostId = hostId, cwd = normalizedCwd)
+            cwdPreferenceStore.addRecentCwd(hostId = hostId, cwd = normalizedCwd)
+            _uiState.update { current ->
+                current.copy(recentCwds = cwdPreferenceStore.getRecentCwds(hostId))
+            }
             markConnectionWarm(hostId = hostId, cwd = normalizedCwd)
             completeNewSession()
         }
@@ -619,6 +624,7 @@ class SessionsViewModel(
                         } else {
                             preferredCwd
                         },
+                    recentCwds = cwdPreferenceStore.getRecentCwds(selectedHostId),
                     errorMessage = null,
                 )
             }
@@ -774,6 +780,7 @@ data class SessionsUiState(
     val selectedCwd: String? = null,
     val query: String = "",
     val groups: List<CwdSessionGroupUiState> = emptyList(),
+    val recentCwds: List<String> = emptyList(),
     val isRefreshing: Boolean = false,
     val isResuming: Boolean = false,
     val isPerformingAction: Boolean = false,

@@ -132,7 +132,7 @@ no recourse.
   - `SessionsScreen.kt` — add "+" chip, `CustomCwdSheet`, new callback
   - `SessionsViewModel.kt` — add `newSessionWithCwd(cwd)` method
 
-- [ ] **5.2 Recent directories + autocomplete**
+- [x] **5.2 Recent directories + autocomplete**
 
   After 5.1 is functional, improve discoverability:
 

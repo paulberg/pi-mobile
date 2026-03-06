@@ -231,6 +231,7 @@ private fun SessionsScreen(
 
     if (showCustomCwdSheet) {
         CustomCwdSheet(
+            recentCwds = state.recentCwds,
             isBusy = state.isResuming,
             onDismiss = { showCustomCwdSheet = false },
             onStartSession = { cwd ->
@@ -274,6 +275,7 @@ private fun SessionsDialogs(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomCwdSheet(
+    recentCwds: List<String>,
     isBusy: Boolean,
     onDismiss: () -> Unit,
     onStartSession: (String) -> Unit,
@@ -306,6 +308,30 @@ private fun CustomCwdSheet(
                 label = "Directory path",
                 placeholder = "/home/user/projects/my-app",
             )
+
+            if (recentCwds.isNotEmpty()) {
+                Text(
+                    text = "Recent directories",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(items = recentCwds, key = { it }) { cwd ->
+                        FilterChip(
+                            selected = cwdDraft == cwd,
+                            onClick = { cwdDraft = cwd },
+                            label = {
+                                Text(
+                                    text = formatCwdTail(cwd),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
 
             PiButton(
                 label = if (isBusy) "Starting..." else "Start Session",
