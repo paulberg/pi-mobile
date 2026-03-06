@@ -205,7 +205,7 @@ the situation is worse.
   - `ChatHeader.kt` — rewrite `ModelThinkingControls`, remove separate context/refresh
     row, merge into single `CompactControlsRow` composable
 
-- [ ] **6.2 Scroll-aware header collapse/expand**
+- [x] **6.2 Scroll-aware header collapse/expand**
 
   Make the header hide when scrolling forward (reading newer messages) and reappear when
   scrolling backward, using the classic "collapsing toolbar" pattern.

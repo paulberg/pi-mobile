@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -355,6 +354,7 @@ private fun SwipeToReplyWrapper(
 @Suppress("LongParameterList")
 @Composable
 internal fun ChatBody(
+    listState: LazyListState,
     isLoading: Boolean,
     timeline: List<ChatTimelineItem>,
     hasOlderMessages: Boolean,
@@ -395,6 +395,7 @@ internal fun ChatBody(
         )
     } else {
         ChatTimeline(
+            listState = listState,
             timeline = timeline,
             hasOlderMessages = hasOlderMessages,
             hiddenHistoryCount = hiddenHistoryCount,
@@ -417,6 +418,7 @@ internal fun ChatBody(
 @Suppress("LongParameterList")
 @Composable
 private fun ChatTimeline(
+    listState: LazyListState,
     timeline: List<ChatTimelineItem>,
     hasOlderMessages: Boolean,
     hiddenHistoryCount: Int,
@@ -434,7 +436,6 @@ private fun ChatTimeline(
     modifier: Modifier = Modifier,
 ) {
     var previewImageUri by rememberSaveable { mutableStateOf<String?>(null) }
-    val listState = rememberLazyListState()
     val autoScrollUi =
         rememberTimelineAutoScrollUi(
             listState = listState,

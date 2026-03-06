@@ -1,6 +1,10 @@
 package com.ayagmar.pimobile.ui.chat
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -90,6 +94,7 @@ internal fun ChatHeader(
     thinkingLevel: String?,
     contextUsageLabel: String,
     errorMessage: String?,
+    showControls: Boolean,
     callbacks: ChatCallbacks,
 ) {
     val isCompact = isRunActive
@@ -205,24 +210,33 @@ internal fun ChatHeader(
             )
         }
 
-        // Compact model/thinking controls + context usage in a single row
-        CompactControlsRow(
-            currentModel = currentModel,
-            thinkingLevel = thinkingLevel,
-            contextUsageLabel = contextUsageLabel,
-            onSetThinkingLevel = callbacks.onSetThinkingLevel,
-            onShowModelPicker = callbacks.onShowModelPicker,
-            onShowStatsSheet = callbacks.onShowStatsSheet,
-            onRefreshStats = callbacks.onRefreshStats,
-        )
+        // Collapsible controls — hidden when scrolling down, shown when scrolling up
+        AnimatedVisibility(
+            visible = showControls,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut(),
+        ) {
+            Column {
+                // Compact model/thinking controls + context usage in a single row
+                CompactControlsRow(
+                    currentModel = currentModel,
+                    thinkingLevel = thinkingLevel,
+                    contextUsageLabel = contextUsageLabel,
+                    onSetThinkingLevel = callbacks.onSetThinkingLevel,
+                    onShowModelPicker = callbacks.onShowModelPicker,
+                    onShowStatsSheet = callbacks.onShowStatsSheet,
+                    onRefreshStats = callbacks.onRefreshStats,
+                )
 
-        // Error message if any
-        errorMessage?.let { message ->
-            Text(
-                text = message,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
+                // Error message if any
+                errorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
         }
     }
 }

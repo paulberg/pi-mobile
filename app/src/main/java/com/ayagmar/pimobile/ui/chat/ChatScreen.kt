@@ -5,6 +5,11 @@ import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,10 +17,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -396,6 +405,16 @@ private fun ChatScreenContent(
             )
         }
 
+    // Hoist LazyListState so scroll position is accessible for header collapse
+    val listState = rememberLazyListState()
+
+    // Scroll-direction tracking for header collapse/expand
+    val showHeaderControls = rememberHeaderControlsVisible(
+        listState = listState,
+        isRunActive = isRunActive,
+        isTimelineEmpty = state.timeline.isEmpty() && !state.isLoading,
+    )
+
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp).imePadding(),
         verticalArrangement = Arrangement.spacedBy(if (isRunActive) 8.dp else 12.dp),
@@ -410,17 +429,25 @@ private fun ChatScreenContent(
             thinkingLevel = state.thinkingLevel,
             contextUsageLabel = formatContextUsageLabel(state.sessionStats, state.currentModel),
             errorMessage = state.errorMessage,
+            showControls = showHeaderControls,
             callbacks = callbacks,
         )
 
-        // Extension widgets (above editor)
-        ExtensionWidgets(
-            widgets = state.extensionWidgets,
-            placement = "aboveEditor",
-        )
+        // Extension widgets (above editor) — collapse with header controls
+        AnimatedVisibility(
+            visible = showHeaderControls,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut(),
+        ) {
+            ExtensionWidgets(
+                widgets = state.extensionWidgets,
+                placement = "aboveEditor",
+            )
+        }
 
         Box(modifier = Modifier.weight(1f)) {
             ChatBody(
+                listState = listState,
                 isLoading = state.isLoading,
                 timeline = state.timeline,
                 hasOlderMessages = state.hasOlderMessages,
@@ -470,4 +497,65 @@ private fun ChatScreenContent(
             ExtensionStatusStrip(statuses = state.extensionStatuses)
         }
     }
+}
+
+/**
+ * Tracks scroll direction and determines whether the header controls row should be visible.
+ *
+ * Rules:
+ * - Always visible when the list is at the very top (firstVisibleItemIndex == 0)
+ * - Always visible during an active run (user needs model/context info)
+ * - Always visible when the timeline is empty
+ * - Hidden when scrolling down (reading forward)
+ * - Shown when scrolling up (going backward)
+ */
+@Composable
+private fun rememberHeaderControlsVisible(
+    listState: LazyListState,
+    isRunActive: Boolean,
+    isTimelineEmpty: Boolean,
+): Boolean {
+    // Track previous scroll position to detect direction
+    var previousIndex by remember { mutableIntStateOf(0) }
+    var previousOffset by remember { mutableIntStateOf(0) }
+    var controlsVisible by remember { mutableStateOf(true) }
+
+    val isAtTop by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+
+    // Force-show in certain conditions
+    if (isRunActive || isTimelineEmpty || isAtTop) {
+        // Reset tracking so controls don't immediately hide when these conditions end
+        LaunchedEffect(isRunActive, isTimelineEmpty, isAtTop) {
+            previousIndex = listState.firstVisibleItemIndex
+            previousOffset = listState.firstVisibleItemScrollOffset
+            controlsVisible = true
+        }
+        return true
+    }
+
+    // Track scroll direction only when actively scrolling
+    val currentIndex = listState.firstVisibleItemIndex
+    val currentOffset = listState.firstVisibleItemScrollOffset
+
+    LaunchedEffect(currentIndex, currentOffset) {
+        val scrollingDown = currentIndex > previousIndex ||
+            (currentIndex == previousIndex && currentOffset > previousOffset)
+        val scrollingUp = currentIndex < previousIndex ||
+            (currentIndex == previousIndex && currentOffset < previousOffset)
+
+        if (scrollingDown) {
+            controlsVisible = false
+        } else if (scrollingUp) {
+            controlsVisible = true
+        }
+
+        previousIndex = currentIndex
+        previousOffset = currentOffset
+    }
+
+    return controlsVisible
 }
