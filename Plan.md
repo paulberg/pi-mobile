@@ -17,7 +17,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
 - [x] **1.2 Empty state**
   Currently plain text "No chat messages yet...". Add icon + clearer CTA.
 
-- [ ] **1.3 Break up ChatScreen.kt (3,767 lines)**
+- [x] **1.3 Break up ChatScreen.kt (3,767 lines)**
   Extract into focused files:
   - `ChatHeader.kt`
   - `ChatTimeline.kt` (message list + items)

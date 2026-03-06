@@ -126,6 +126,6 @@ class ChatScreenContextUsageLabelTest {
     }
 
     companion object {
-        private const val CHAT_SCREEN_FILE_CLASS = "com.ayagmar.pimobile.ui.chat.ChatScreenKt"
+        private const val CHAT_SCREEN_FILE_CLASS = "com.ayagmar.pimobile.ui.chat.ChatHeaderKt"
     }
 }
