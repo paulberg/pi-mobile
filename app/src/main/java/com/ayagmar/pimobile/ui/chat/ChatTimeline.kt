@@ -69,6 +69,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.ayagmar.pimobile.chat.ChatTimelineItem
 import com.ayagmar.pimobile.corenet.ConnectionState
+import com.ayagmar.pimobile.ui.theme.LocalChatColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -234,13 +235,14 @@ private fun InlineRunProgressCard(
     phase: LiveRunPhase,
     elapsedSeconds: Long,
 ) {
+    val chatColors = LocalChatColors.current
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Box(
             modifier = Modifier
                 .width(4.dp)
                 .fillMaxHeight()
                 .background(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = chatColors.assistantAccent,
                     shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
                 ),
         )
@@ -249,7 +251,7 @@ private fun InlineRunProgressCard(
             shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp),
             colors =
                 CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = chatColors.assistantContainer,
                 ),
         ) {
             Column(
@@ -259,7 +261,7 @@ private fun InlineRunProgressCard(
                 Text(
                     text = "Assistant",
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = chatColors.onAssistantContainer,
                 )
                 LiveRunProgressIndicator(
                     phase = phase,

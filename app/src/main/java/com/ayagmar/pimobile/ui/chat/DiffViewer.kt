@@ -31,7 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -366,7 +366,7 @@ private fun LineNumberCell(
         text = number?.toString().orEmpty(),
         style = MaterialTheme.typography.bodySmall,
         color = colors.gutterText,
-        fontFamily = FontFamily.Monospace,
+        fontFamily = PiCodeFontFamily,
         textAlign = TextAlign.End,
         modifier = Modifier.width(style.gutterWidth).padding(end = 6.dp),
     )
@@ -387,7 +387,7 @@ private fun buildHighlightedDiffLine(
         }
 
     val content = line.content
-    val baseStyle = SpanStyle(color = baseContentColor, fontFamily = FontFamily.Monospace)
+    val baseStyle = SpanStyle(color = baseContentColor, fontFamily = PiCodeFontFamily)
     val syntaxColors = SyntaxHighlightColors(
         comment = colors.commentText,
         string = colors.stringText,

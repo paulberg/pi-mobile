@@ -56,7 +56,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
+import com.ayagmar.pimobile.ui.theme.LocalChatColors
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ayagmar.pimobile.chat.ChatTimelineItem
@@ -140,11 +141,12 @@ private fun UserCard(
     onImageClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val chatColors = LocalChatColors.current
     Card(
         modifier = modifier.widthIn(max = 340.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                containerColor = chatColors.userContainer,
             ),
     ) {
         Column(
@@ -154,12 +156,12 @@ private fun UserCard(
             Text(
                 text = "You",
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = chatColors.onUserContainer,
             )
             Text(
                 text = text.ifBlank { "(empty)" },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = chatColors.onUserContainer,
             )
 
             if (imageUris.isNotEmpty()) {
@@ -199,7 +201,7 @@ private fun UserCard(
                 Text(
                     text = if (imageCount == 1) "📎 1 image attached" else "📎 $imageCount images attached",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = chatColors.onUserContainer,
                 )
             }
         }
@@ -252,13 +254,14 @@ private fun AssistantCard(
     item: ChatTimelineItem.Assistant,
     onToggleThinkingExpansion: (String) -> Unit,
 ) {
+    val chatColors = LocalChatColors.current
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Box(
             modifier = Modifier
                 .width(4.dp)
                 .fillMaxHeight()
                 .background(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = chatColors.assistantAccent,
                     shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
                 ),
         )
@@ -267,7 +270,7 @@ private fun AssistantCard(
             shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp),
             colors =
                 CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = chatColors.assistantContainer,
                 ),
         ) {
             Column(
@@ -278,7 +281,7 @@ private fun AssistantCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = chatColors.onAssistantContainer,
                 )
 
                 AssistantMessageContent(
@@ -303,11 +306,12 @@ private fun AssistantMessageContent(
     text: String,
     modifier: Modifier = Modifier,
 ) {
+    val chatColors = LocalChatColors.current
     if (text.isBlank()) {
         Text(
             text = "(empty)",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = chatColors.onAssistantContainer,
             modifier = modifier,
         )
         return
@@ -318,7 +322,7 @@ private fun AssistantMessageContent(
         MarkdownText(
             text = text,
             modifier = modifier,
-            baseColor = MaterialTheme.colorScheme.onSurface,
+            baseColor = chatColors.onAssistantContainer,
         )
         return
     }
@@ -335,7 +339,7 @@ private fun AssistantMessageContent(
                     if (block.text.isNotBlank()) {
                         MarkdownText(
                             text = block.text,
-                            baseColor = MaterialTheme.colorScheme.onSurface,
+                            baseColor = chatColors.onAssistantContainer,
                         )
                     }
                 }
@@ -377,10 +381,12 @@ private fun AssistantCodeBlock(
     val gutterWidth = if (showLineNumbers) (lines.size.toString().length * 8 + 12).dp else 0.dp
     val clipboardManager = LocalClipboardManager.current
 
+    val chatColors = LocalChatColors.current
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = colors.surfaceVariant.copy(alpha = 0.85f),
+        color = chatColors.codeSurface,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header row: language chip + copy button
@@ -420,7 +426,7 @@ private fun AssistantCodeBlock(
                                 Text(
                                     text = "${index + 1}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontFamily = PiCodeFontFamily,
                                     color = colors.onSurfaceVariant.copy(alpha = 0.5f),
                                     modifier = Modifier.padding(end = 8.dp),
                                 )
@@ -430,7 +436,7 @@ private fun AssistantCodeBlock(
                         Text(
                             text = buildPrismHighlightedString(text, spans, colors.onSurface, syntaxColors),
                             style = MaterialTheme.typography.bodySmall,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = PiCodeFontFamily,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -438,7 +444,7 @@ private fun AssistantCodeBlock(
                     Text(
                         text = buildPrismHighlightedString(text, spans, colors.onSurface, syntaxColors),
                         style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = PiCodeFontFamily,
                         modifier = Modifier.padding(12.dp),
                     )
                 }
@@ -518,16 +524,18 @@ private fun ThinkingBlock(
             thinking
         }
 
+    val chatColors = LocalChatColors.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                containerColor = chatColors.thinkingContainer,
             ),
         border =
             androidx.compose.foundation.BorderStroke(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
+                color = chatColors.thinkingBorder,
             ),
     ) {
         Column(
@@ -539,18 +547,18 @@ private fun ThinkingBlock(
                     imageVector = Icons.Default.Menu,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    tint = chatColors.onThinkingContainer,
                 )
                 Text(
                     text = if (isThinkingComplete) " Thinking" else " Thinking…",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = chatColors.onThinkingContainer,
                 )
             }
             Text(
                 text = displayThinking,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = chatColors.onThinkingContainer,
             )
 
             if (shouldCollapse || isThinkingExpanded) {
@@ -580,11 +588,13 @@ private fun ToolCard(
     val toolInfo = getToolInfo(item.toolName)
     val clipboardManager = LocalClipboardManager.current
 
+    val chatColors = LocalChatColors.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                containerColor = chatColors.toolContainer,
             ),
     ) {
         Column(
@@ -682,13 +692,13 @@ private fun ToolCard(
                         Text(
                             text = buildPrismHighlightedString(rawOutput, spans, MaterialTheme.colorScheme.onSurface, syntaxColors),
                             style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = PiCodeFontFamily,
                         )
                     } else {
                         Text(
                             text = rawOutput,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = PiCodeFontFamily,
                         )
                     }
                 }
@@ -775,7 +785,7 @@ private fun ToolArgumentsSection(
                                 text = key,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = PiCodeFontFamily,
                             )
                             Text(
                                 text = "=",
@@ -792,7 +802,7 @@ private fun ToolArgumentsSection(
                                 text = displayValue,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = PiCodeFontFamily,
                                 modifier = Modifier.weight(1f),
                             )
                         }

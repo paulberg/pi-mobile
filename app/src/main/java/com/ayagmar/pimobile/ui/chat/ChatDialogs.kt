@@ -63,7 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.unit.dp
 import com.ayagmar.pimobile.chat.ChatViewModel
 import com.ayagmar.pimobile.corerpc.AvailableModel
@@ -147,7 +147,7 @@ internal fun BashDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !isExecuting,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = PiCodeFontFamily),
                     trailingIcon = {
                         if (history.isNotEmpty() && !isExecuting) {
                             IconButton(onClick = { showHistoryDropdown = true }) {
@@ -170,7 +170,7 @@ internal fun BashDialog(
                                 Text(
                                     text = historyCommand,
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontFamily = PiCodeFontFamily,
                                     maxLines = 1,
                                 )
                             },
@@ -224,7 +224,7 @@ internal fun BashDialog(
                         Text(
                             text = output.ifEmpty { "(no output)" },
                             style = MaterialTheme.typography.bodySmall,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = PiCodeFontFamily,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
@@ -405,7 +405,7 @@ internal fun SessionStatsSheet(
                                 Text(
                                     text = path.takeLast(SESSION_PATH_DISPLAY_LENGTH),
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontFamily = PiCodeFontFamily,
                                     modifier = Modifier.weight(1f),
                                 )
                                 IconButton(
@@ -476,7 +476,7 @@ private fun StatRow(
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = PiCodeFontFamily,
         )
     }
 }

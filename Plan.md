@@ -54,7 +54,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
 
 ## Phase 4 — Polish & Identity
 
-- [ ] **4.1 Typography and theming**
+- [x] **4.1 Typography and theming**
   No custom typography today. Add:
   - Monospace font for code
   - Tuned body text sizes and tighter line spacing for chat timeline

@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -215,7 +215,7 @@ internal fun parseInlineMarkdown(
                 InlineMatchType.INLINE_CODE -> {
                     withStyle(
                         SpanStyle(
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = PiCodeFontFamily,
                             color = colors.code,
                             background = colors.codeBackground,
                         ),
