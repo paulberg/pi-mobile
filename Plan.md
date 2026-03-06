@@ -49,7 +49,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
   - Haptic feedback on send
   - Swipe-to-quote/reply gesture for steering follow-ups
 
-- [ ] **3.3 Improve empty state with clearer onboarding CTA**
+- [x] **3.3 Improve empty state with clearer onboarding CTA**
   Refine the Phase 1 empty state with contextual guidance (host setup, session resume hints).
 
 ## Phase 4 — Polish & Identity

@@ -30,7 +30,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -66,6 +68,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.ayagmar.pimobile.chat.ChatTimelineItem
+import com.ayagmar.pimobile.corenet.ConnectionState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -83,6 +86,114 @@ private const val SWIPE_REPLY_MAX_DP = 100
 private const val SWIPE_REPLY_ICON_ALPHA_SCALE = 1.5f
 private const val SWIPE_REPLY_SNAP_BACK_MS = 200
 private const val SWIPE_REPLY_QUOTE_MAX_LENGTH = 120
+
+@Composable
+private fun EmptyStateContent(
+    connectionState: ConnectionState,
+    currentModelName: String?,
+    errorMessage: String?,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        when {
+            connectionState == ConnectionState.CONNECTING -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    strokeWidth = 3.dp,
+                )
+                Text(
+                    text = "Connecting\u2026",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Establishing connection to the bridge.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            connectionState == ConnectionState.RECONNECTING -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    strokeWidth = 3.dp,
+                )
+                Text(
+                    text = "Reconnecting\u2026",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Lost connection. Trying to reconnect.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            connectionState == ConnectionState.DISCONNECTED -> {
+                Icon(
+                    imageVector = Icons.Default.WifiOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Not connected",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Check that the bridge is running and reachable over Tailscale.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            errorMessage != null -> {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+                Text(
+                    text = "Something went wrong",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            else -> {
+                Icon(
+                    imageVector = Icons.Default.Terminal,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = if (currentModelName != null) "Ready — $currentModelName" else "Ready to go",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Send a prompt to start a conversation with Pi.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 internal fun LiveRunProgressIndicator(
@@ -250,6 +361,9 @@ internal fun ChatBody(
     isRunActive: Boolean,
     runPhase: LiveRunPhase,
     runElapsedSeconds: Long,
+    connectionState: ConnectionState,
+    currentModelName: String?,
+    errorMessage: String?,
     callbacks: ChatCallbacks,
 ) {
     val hasStreamingTimelineItem =
@@ -272,30 +386,11 @@ internal fun ChatBody(
             CircularProgressIndicator()
         }
     } else if (timeline.isEmpty() && !showInlineRunProgress) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 64.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Terminal,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "No messages yet",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "Send a prompt to start a conversation with Pi.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        EmptyStateContent(
+            connectionState = connectionState,
+            currentModelName = currentModelName,
+            errorMessage = errorMessage,
+        )
     } else {
         ChatTimeline(
             timeline = timeline,

@@ -429,6 +429,9 @@ private fun ChatScreenContent(
                 isRunActive = isRunActive,
                 runPhase = runPhase,
                 runElapsedSeconds = elapsedSeconds,
+                connectionState = state.connectionState,
+                currentModelName = state.currentModel?.name,
+                errorMessage = state.errorMessage,
                 callbacks = callbacks,
             )
         }
