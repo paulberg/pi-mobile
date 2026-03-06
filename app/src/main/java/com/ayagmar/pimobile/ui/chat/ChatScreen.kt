@@ -35,6 +35,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
@@ -546,11 +547,11 @@ private fun rememberHeaderControlsVisible(
     val expandThresholdPx = remember(density) { with(density) { HEADER_EXPAND_THRESHOLD_DP.dp.roundToPx() } }
 
     // Track previous scroll position to detect direction
-    var previousIndex by remember { mutableIntStateOf(0) }
-    var previousOffset by remember { mutableIntStateOf(0) }
+    var previousIndex by remember(listState) { mutableIntStateOf(listState.firstVisibleItemIndex) }
+    var previousOffset by remember(listState) { mutableIntStateOf(listState.firstVisibleItemScrollOffset) }
     var controlsVisible by remember { mutableStateOf(true) }
-    var accumulatedScrollPx by remember { mutableIntStateOf(0) }
-    var lastScrollDeltaSign by remember { mutableIntStateOf(0) }
+    var gestureAccumulatedScrollPx by remember { mutableIntStateOf(0) }
+    var gestureScrollDirection by remember { mutableIntStateOf(0) }
 
     val isAtTop by remember {
         derivedStateOf {
@@ -564,53 +565,61 @@ private fun rememberHeaderControlsVisible(
         LaunchedEffect(isRunActive, isTimelineEmpty, isAtTop) {
             previousIndex = listState.firstVisibleItemIndex
             previousOffset = listState.firstVisibleItemScrollOffset
-            accumulatedScrollPx = 0
-            lastScrollDeltaSign = 0
+            gestureAccumulatedScrollPx = 0
+            gestureScrollDirection = 0
             controlsVisible = true
         }
         return true
     }
 
-    // Track scroll direction only when actively scrolling
-    val currentIndex = listState.firstVisibleItemIndex
-    val currentOffset = listState.firstVisibleItemScrollOffset
+    LaunchedEffect(listState, collapseThresholdPx, expandThresholdPx) {
+        snapshotFlow {
+            Triple(
+                listState.isScrollInProgress,
+                listState.firstVisibleItemIndex,
+                listState.firstVisibleItemScrollOffset,
+            )
+        }.collect { (isScrollInProgress, currentIndex, currentOffset) ->
+            if (!isScrollInProgress) {
+                when {
+                    gestureScrollDirection > 0 && controlsVisible &&
+                        gestureAccumulatedScrollPx >= collapseThresholdPx -> {
+                        controlsVisible = false
+                    }
 
-    LaunchedEffect(currentIndex, currentOffset) {
-        val deltaPx =
-            when {
-                currentIndex == previousIndex -> currentOffset - previousOffset
-                currentIndex > previousIndex -> Int.MAX_VALUE
-                else -> Int.MIN_VALUE
-            }
-
-        val deltaSign = deltaPx.compareTo(0)
-        if (deltaSign != 0) {
-            if (deltaSign != lastScrollDeltaSign) {
-                accumulatedScrollPx = 0
-                lastScrollDeltaSign = deltaSign
-            }
-
-            accumulatedScrollPx +=
-                when (deltaPx) {
-                    Int.MAX_VALUE, Int.MIN_VALUE -> collapseThresholdPx
-                    else -> kotlin.math.abs(deltaPx)
+                    gestureScrollDirection < 0 && !controlsVisible &&
+                        gestureAccumulatedScrollPx >= expandThresholdPx -> {
+                        controlsVisible = true
+                    }
                 }
 
-            when {
-                deltaSign > 0 && controlsVisible && accumulatedScrollPx >= collapseThresholdPx -> {
-                    controlsVisible = false
-                    accumulatedScrollPx = 0
+                gestureAccumulatedScrollPx = 0
+                gestureScrollDirection = 0
+                previousIndex = currentIndex
+                previousOffset = currentOffset
+                return@collect
+            }
+
+            val deltaPx =
+                when {
+                    currentIndex == previousIndex -> currentOffset - previousOffset
+                    currentIndex > previousIndex -> collapseThresholdPx
+                    else -> -expandThresholdPx
                 }
 
-                deltaSign < 0 && !controlsVisible && accumulatedScrollPx >= expandThresholdPx -> {
-                    controlsVisible = true
-                    accumulatedScrollPx = 0
+            val deltaSign = deltaPx.compareTo(0)
+            if (deltaSign != 0) {
+                if (deltaSign != gestureScrollDirection) {
+                    gestureAccumulatedScrollPx = 0
+                    gestureScrollDirection = deltaSign
                 }
+
+                gestureAccumulatedScrollPx += kotlin.math.abs(deltaPx)
             }
+
+            previousIndex = currentIndex
+            previousOffset = currentOffset
         }
-
-        previousIndex = currentIndex
-        previousOffset = currentOffset
     }
 
     return controlsVisible
