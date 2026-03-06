@@ -14,7 +14,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
   - User messages: keep right-aligned with current color
   - Assistant messages: use `surface` or `surfaceVariant`, left-aligned, subtle accent bar or avatar indicator
 
-- [ ] **1.2 Empty state**
+- [x] **1.2 Empty state**
   Currently plain text "No chat messages yet...". Add icon + clearer CTA.
 
 - [ ] **1.3 Break up ChatScreen.kt (3,767 lines)**

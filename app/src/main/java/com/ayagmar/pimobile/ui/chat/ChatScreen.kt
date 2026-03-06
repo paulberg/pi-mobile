@@ -877,10 +877,30 @@ private fun ChatBody(
             CircularProgressIndicator()
         }
     } else if (timeline.isEmpty() && !showInlineRunProgress) {
-        Text(
-            text = "No chat messages yet. Resume a session and send a prompt.",
-            style = MaterialTheme.typography.bodyLarge,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 64.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Terminal,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "No messages yet",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Send a prompt to start a conversation with Pi.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     } else {
         ChatTimeline(
             timeline = timeline,
