@@ -2,9 +2,12 @@ package com.ayagmar.pimobile.ui.chat
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Card
@@ -47,10 +52,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -58,6 +68,7 @@ import coil.compose.AsyncImage
 import com.ayagmar.pimobile.chat.ChatTimelineItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 internal const val CHAT_RUN_PROGRESS_TAG = "chat_run_progress"
 internal const val CHAT_JUMP_TO_LATEST_TAG = "chat_jump_to_latest"
@@ -66,6 +77,12 @@ private const val AUTO_SCROLL_ANIMATION_MIN_INTERVAL_MS = 120L
 private const val STREAMING_AUTO_SCROLL_CHECK_INTERVAL_MS = 90L
 private const val CHAT_TIMELINE_BOTTOM_ANCHOR_KEY = "chat_timeline_bottom_anchor"
 internal const val RUN_PROGRESS_TICK_MS = 1_000L
+
+private const val SWIPE_REPLY_THRESHOLD_DP = 72
+private const val SWIPE_REPLY_MAX_DP = 100
+private const val SWIPE_REPLY_ICON_ALPHA_SCALE = 1.5f
+private const val SWIPE_REPLY_SNAP_BACK_MS = 200
+private const val SWIPE_REPLY_QUOTE_MAX_LENGTH = 120
 
 @Composable
 internal fun LiveRunProgressIndicator(
@@ -143,6 +160,85 @@ private fun InlineRunProgressCard(
     }
 }
 
+@Suppress("MagicNumber")
+@Composable
+private fun SwipeToReplyWrapper(
+    onReply: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val offsetX = remember { Animatable(0f) }
+    val hapticFeedback = LocalHapticFeedback.current
+    var hapticFired by remember { mutableStateOf(false) }
+    val thresholdPx = SWIPE_REPLY_THRESHOLD_DP.dp
+    val maxPx = SWIPE_REPLY_MAX_DP.dp
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        // Reply icon revealed behind the card
+        val progress = (offsetX.value / thresholdPx.value).coerceIn(0f, 1f)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(start = 8.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Reply,
+                contentDescription = "Reply",
+                modifier = Modifier
+                    .size(24.dp)
+                    .alpha((progress * SWIPE_REPLY_ICON_ALPHA_SCALE).coerceAtMost(1f)),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        // The actual message content, offset horizontally
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            hapticFired = false
+                        },
+                        onDragEnd = {
+                            if (offsetX.value >= thresholdPx.toPx()) {
+                                onReply()
+                            }
+                            coroutineScope.launch {
+                                offsetX.animateTo(
+                                    0f,
+                                    animationSpec = tween(SWIPE_REPLY_SNAP_BACK_MS),
+                                )
+                            }
+                        },
+                        onDragCancel = {
+                            coroutineScope.launch {
+                                offsetX.animateTo(
+                                    0f,
+                                    animationSpec = tween(SWIPE_REPLY_SNAP_BACK_MS),
+                                )
+                            }
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            coroutineScope.launch {
+                                val newValue = (offsetX.value + dragAmount)
+                                    .coerceIn(0f, maxPx.toPx())
+                                offsetX.snapTo(newValue)
+                                if (newValue >= thresholdPx.toPx() && !hapticFired) {
+                                    hapticFired = true
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                            }
+                        },
+                    )
+                },
+        ) {
+            content()
+        }
+    }
+}
+
 @Suppress("LongParameterList")
 @Composable
 internal fun ChatBody(
@@ -215,6 +311,7 @@ internal fun ChatBody(
             onToggleThinkingExpansion = callbacks.onToggleThinkingExpansion,
             onToggleDiffExpansion = callbacks.onToggleDiffExpansion,
             onToggleToolArgumentsExpansion = callbacks.onToggleToolArgumentsExpansion,
+            onQuoteReply = callbacks.onSteer,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -236,6 +333,7 @@ private fun ChatTimeline(
     onToggleThinkingExpansion: (String) -> Unit,
     onToggleDiffExpansion: (String) -> Unit,
     onToggleToolArgumentsExpansion: (String) -> Unit,
+    onQuoteReply: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var previewImageUri by rememberSaveable { mutableStateOf<String?>(null) }
@@ -263,6 +361,7 @@ private fun ChatTimeline(
             onToggleThinkingExpansion = onToggleThinkingExpansion,
             onToggleDiffExpansion = onToggleDiffExpansion,
             onToggleToolArgumentsExpansion = onToggleToolArgumentsExpansion,
+            onQuoteReply = onQuoteReply,
             onPreviewImage = { uri ->
                 previewImageUri = uri
             },
@@ -487,6 +586,7 @@ private fun ChatTimelineList(
     onToggleThinkingExpansion: (String) -> Unit,
     onToggleDiffExpansion: (String) -> Unit,
     onToggleToolArgumentsExpansion: (String) -> Unit,
+    onQuoteReply: (String) -> Unit,
     onPreviewImage: (String) -> Unit,
 ) {
     LazyColumn(
@@ -506,15 +606,36 @@ private fun ChatTimelineList(
         }
 
         items(items = timeline, key = { item -> item.id }) { item ->
-            ChatTimelineRow(
-                item = item,
-                expandedToolArguments = expandedToolArguments,
-                onToggleToolExpansion = onToggleToolExpansion,
-                onToggleThinkingExpansion = onToggleThinkingExpansion,
-                onToggleDiffExpansion = onToggleDiffExpansion,
-                onToggleToolArgumentsExpansion = onToggleToolArgumentsExpansion,
-                onPreviewImage = onPreviewImage,
-            )
+            val isAssistant = item is ChatTimelineItem.Assistant
+            if (isAssistant) {
+                val assistantItem = item as ChatTimelineItem.Assistant
+                val quoteSnippet = remember(assistantItem.text) {
+                    buildQuoteSnippet(assistantItem.text)
+                }
+                SwipeToReplyWrapper(
+                    onReply = { onQuoteReply(quoteSnippet) },
+                ) {
+                    ChatTimelineRow(
+                        item = item,
+                        expandedToolArguments = expandedToolArguments,
+                        onToggleToolExpansion = onToggleToolExpansion,
+                        onToggleThinkingExpansion = onToggleThinkingExpansion,
+                        onToggleDiffExpansion = onToggleDiffExpansion,
+                        onToggleToolArgumentsExpansion = onToggleToolArgumentsExpansion,
+                        onPreviewImage = onPreviewImage,
+                    )
+                }
+            } else {
+                ChatTimelineRow(
+                    item = item,
+                    expandedToolArguments = expandedToolArguments,
+                    onToggleToolExpansion = onToggleToolExpansion,
+                    onToggleThinkingExpansion = onToggleThinkingExpansion,
+                    onToggleDiffExpansion = onToggleDiffExpansion,
+                    onToggleToolArgumentsExpansion = onToggleToolArgumentsExpansion,
+                    onPreviewImage = onPreviewImage,
+                )
+            }
         }
 
         if (showInlineRunProgress) {
@@ -566,4 +687,17 @@ private fun ImagePreviewDialog(
             }
         }
     }
+}
+
+private fun buildQuoteSnippet(text: String): String {
+    val firstLine = text.lineSequence()
+        .map { it.trim() }
+        .firstOrNull { it.isNotEmpty() }
+        ?: return ""
+    val snippet = if (firstLine.length > SWIPE_REPLY_QUOTE_MAX_LENGTH) {
+        firstLine.take(SWIPE_REPLY_QUOTE_MAX_LENGTH) + "..."
+    } else {
+        firstLine
+    }
+    return "> $snippet"
 }

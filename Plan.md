@@ -44,7 +44,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
   Model picker, session stats, tree navigation, bash dialog — all are `AlertDialog` today.
   Bottom sheets give drag-to-dismiss, partial expansion, peek — feels more native on mobile.
 
-- [ ] **3.2 Improve the input area**
+- [x] **3.2 Improve the input area**
   - Command palette as inline expanding panel or bottom sheet (currently AlertDialog)
   - Haptic feedback on send
   - Swipe-to-quote/reply gesture for steering follow-ups
