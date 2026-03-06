@@ -40,7 +40,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
 
 ## Phase 3 — Mobile-Native Patterns
 
-- [ ] **3.1 Replace AlertDialogs with ModalBottomSheets**
+- [x] **3.1 Replace AlertDialogs with ModalBottomSheets**
   Model picker, session stats, tree navigation, bash dialog — all are `AlertDialog` today.
   Bottom sheets give drag-to-dismiss, partial expansion, peek — feels more native on mobile.
 

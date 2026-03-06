@@ -7,16 +7,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +38,7 @@ import com.ayagmar.pimobile.chat.ExtensionUiRequest
 import com.ayagmar.pimobile.sessions.SlashCommandInfo
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ExtensionUiDialogs(
     request: ExtensionUiRequest?,
@@ -42,7 +47,7 @@ internal fun ExtensionUiDialogs(
 ) {
     when (request) {
         is ExtensionUiRequest.Select -> {
-            SelectDialog(
+            SelectSheet(
                 request = request,
                 onConfirm = { value ->
                     onSendResponse(request.requestId, value, null, false)
@@ -52,7 +57,7 @@ internal fun ExtensionUiDialogs(
         }
 
         is ExtensionUiRequest.Confirm -> {
-            ConfirmDialog(
+            ConfirmSheet(
                 request = request,
                 onConfirm = { confirmed ->
                     onSendResponse(request.requestId, null, confirmed, false)
@@ -62,7 +67,7 @@ internal fun ExtensionUiDialogs(
         }
 
         is ExtensionUiRequest.Input -> {
-            InputDialog(
+            InputSheet(
                 request = request,
                 onConfirm = { value ->
                     onSendResponse(request.requestId, value, null, false)
@@ -72,7 +77,7 @@ internal fun ExtensionUiDialogs(
         }
 
         is ExtensionUiRequest.Editor -> {
-            EditorDialog(
+            EditorSheet(
                 request = request,
                 onConfirm = { value ->
                     onSendResponse(request.requestId, value, null, false)
@@ -85,71 +90,130 @@ internal fun ExtensionUiDialogs(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SelectDialog(
+private fun SelectSheet(
     request: ExtensionUiRequest.Select,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.AlertDialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(request.title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                request.options.forEach { option ->
-                    TextButton(
-                        onClick = { onConfirm(option) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(option)
-                    }
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = request.title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+
+            request.options.forEach { option ->
+                TextButton(
+                    onClick = { onConfirm(option) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(option)
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
             }
-        },
-    )
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ConfirmDialog(
+private fun ConfirmSheet(
     request: ExtensionUiRequest.Confirm,
     onConfirm: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.AlertDialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(request.title) },
-        text = { Text(request.message) },
-        confirmButton = {
-            Button(onClick = { onConfirm(true) }) {
-                Text("Yes")
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = request.title,
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            Text(
+                text = request.message,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+            ) {
+                TextButton(onClick = { onConfirm(false) }) {
+                    Text("No")
+                }
+                Button(onClick = { onConfirm(true) }) {
+                    Text("Yes")
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = { onConfirm(false) }) {
-                Text("No")
-            }
-        },
-    )
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun InputDialog(
+private fun InputSheet(
     request: ExtensionUiRequest.Input,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var text by rememberSaveable(request.requestId) { mutableStateOf("") }
 
-    androidx.compose.material3.AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(request.title) },
-        text = {
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = request.title,
+                style = MaterialTheme.typography.titleMedium,
+            )
+
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -157,35 +221,53 @@ private fun InputDialog(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(text) },
-                enabled = text.isNotBlank(),
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             ) {
-                Text("OK")
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+                Button(
+                    onClick = { onConfirm(text) },
+                    enabled = text.isNotBlank(),
+                ) {
+                    Text("OK")
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditorDialog(
+private fun EditorSheet(
     request: ExtensionUiRequest.Editor,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var text by rememberSaveable(request.requestId) { mutableStateOf(request.prefill) }
 
-    androidx.compose.material3.AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(request.title) },
-        text = {
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = request.title,
+                style = MaterialTheme.typography.titleMedium,
+            )
+
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -193,18 +275,20 @@ private fun EditorDialog(
                 singleLine = false,
                 maxLines = 10,
             )
-        },
-        confirmButton = {
-            Button(onClick = { onConfirm(text) }) {
-                Text("OK")
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+                Button(onClick = { onConfirm(text) }) {
+                    Text("OK")
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -307,6 +391,7 @@ private fun commandSupport(command: SlashCommandInfo): CommandSupport {
 }
 
 @Suppress("LongParameterList", "LongMethod")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CommandPalette(
     isVisible: Boolean,
@@ -318,6 +403,8 @@ internal fun CommandPalette(
     onDismiss: () -> Unit,
 ) {
     if (!isVisible) return
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val filteredCommands =
         remember(commands, query) {
@@ -346,74 +433,81 @@ internal fun CommandPalette(
             filteredPaletteCommands.groupBy { item -> item.support }
         }
 
-    androidx.compose.material3.AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Commands") },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
-            ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    placeholder = { Text("Search commands...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+        ) {
+            // Header
+            Text(
+                text = "Commands",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text("Search commands...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            )
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (filteredPaletteCommands.isEmpty()) {
+                Text(
+                    text = "No commands found",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp),
                 )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp),
+                ) {
+                    commandSupportOrder.forEach { support ->
+                        val commandsInGroup = groupedCommands[support].orEmpty()
+                        if (commandsInGroup.isEmpty()) {
+                            return@forEach
+                        }
 
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else if (filteredPaletteCommands.isEmpty()) {
-                    Text(
-                        text = "No commands found",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        commandSupportOrder.forEach { support ->
-                            val commandsInGroup = groupedCommands[support].orEmpty()
-                            if (commandsInGroup.isEmpty()) {
-                                return@forEach
-                            }
-
-                            item {
-                                Text(
-                                    text = support.groupLabel,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(vertical = 4.dp),
-                                )
-                            }
-                            items(
-                                items = commandsInGroup,
-                                key = { item -> "${item.command.source}:${item.command.name}" },
-                            ) { item ->
-                                CommandItem(
-                                    command = item.command,
-                                    support = item.support,
-                                    onClick = { onCommandSelected(item.command) },
-                                )
-                            }
+                        item {
+                            Text(
+                                text = support.groupLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 4.dp),
+                            )
+                        }
+                        items(
+                            items = commandsInGroup,
+                            key = { item -> "${item.command.source}:${item.command.name}" },
+                        ) { item ->
+                            CommandItem(
+                                command = item.command,
+                                support = item.support,
+                                onClick = { onCommandSelected(item.command) },
+                            )
                         }
                     }
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
+        }
+    }
 }
 
 @Composable

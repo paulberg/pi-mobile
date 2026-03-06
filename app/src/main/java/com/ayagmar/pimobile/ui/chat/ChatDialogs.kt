@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,7 +33,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,13 +41,16 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,7 +64,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ayagmar.pimobile.chat.ChatViewModel
 import com.ayagmar.pimobile.corerpc.AvailableModel
@@ -81,6 +85,7 @@ private val TREE_FILTER_OPTIONS =
     )
 
 @Suppress("LongParameterList", "LongMethod")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BashDialog(
     isVisible: Boolean,
@@ -99,204 +104,214 @@ internal fun BashDialog(
 ) {
     if (!isVisible) return
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showHistoryDropdown by remember { mutableStateOf(false) }
     val clipboardManager = LocalClipboardManager.current
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = { if (!isExecuting) onDismiss() },
-        title = {
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Run Bash Command")
+                Text(
+                    text = "Run Bash Command",
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Icon(
                     imageVector = Icons.Default.Terminal,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 400.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Command input with history dropdown
-                Box {
-                    OutlinedTextField(
-                        value = command,
-                        onValueChange = onCommandChange,
-                        placeholder = { Text("Enter command...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !isExecuting,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                        trailingIcon = {
-                            if (history.isNotEmpty() && !isExecuting) {
-                                IconButton(onClick = { showHistoryDropdown = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.ExpandMore,
-                                        contentDescription = "History",
-                                    )
-                                }
-                            }
-                        },
-                    )
 
-                    DropdownMenu(
-                        expanded = showHistoryDropdown,
-                        onDismissRequest = { showHistoryDropdown = false },
-                    ) {
-                        history.forEach { historyCommand ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = historyCommand,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = FontFamily.Monospace,
-                                        maxLines = 1,
-                                    )
-                                },
-                                onClick = {
-                                    onSelectHistory(historyCommand)
-                                    showHistoryDropdown = false
-                                },
-                            )
-                        }
-                    }
-                }
-
-                // Output display
-                Card(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(8.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Output",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-
-                            if (output.isNotEmpty()) {
-                                IconButton(
-                                    onClick = { clipboardManager.setText(AnnotatedString(output)) },
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = "Copy output",
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            }
-                        }
-
-                        SelectionContainer {
-                            Text(
-                                text = output.ifEmpty { "(no output)" },
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .verticalScroll(rememberScrollState()),
-                            )
-                        }
-                    }
-                }
-
-                // Exit code and truncation info
-                Row(
+            // Command input with history dropdown
+            Box {
+                OutlinedTextField(
+                    value = command,
+                    onValueChange = onCommandChange,
+                    placeholder = { Text("Enter command...") },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (exitCode != null) {
-                        val exitColor =
-                            if (exitCode == 0) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.error
-                            }
-                        AssistChip(
-                            onClick = {},
-                            label = {
-                                Text(
-                                    text = "Exit: $exitCode",
-                                    color = exitColor,
+                    singleLine = true,
+                    enabled = !isExecuting,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                    trailingIcon = {
+                        if (history.isNotEmpty() && !isExecuting) {
+                            IconButton(onClick = { showHistoryDropdown = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.ExpandMore,
+                                    contentDescription = "History",
                                 )
+                            }
+                        }
+                    },
+                )
+
+                DropdownMenu(
+                    expanded = showHistoryDropdown,
+                    onDismissRequest = { showHistoryDropdown = false },
+                ) {
+                    history.forEach { historyCommand ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = historyCommand,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    maxLines = 1,
+                                )
+                            },
+                            onClick = {
+                                onSelectHistory(historyCommand)
+                                showHistoryDropdown = false
                             },
                         )
                     }
+                }
+            }
 
-                    if (wasTruncated && fullLogPath != null) {
-                        TextButton(
-                            onClick = { clipboardManager.setText(AnnotatedString(fullLogPath)) },
-                        ) {
-                            Text(
-                                text = "Output truncated (copy path)",
-                                style = MaterialTheme.typography.labelSmall,
-                            )
+            // Output display
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 150.dp, max = 300.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Output",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        if (output.isNotEmpty()) {
+                            IconButton(
+                                onClick = { clipboardManager.setText(AnnotatedString(output)) },
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = "Copy output",
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
+                    }
+
+                    SelectionContainer {
+                        Text(
+                            text = output.ifEmpty { "(no output)" },
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState()),
+                        )
                     }
                 }
             }
-        },
-        confirmButton = {
-            if (isExecuting) {
-                Button(
-                    onClick = onAbort,
-                    colors =
-                        ButtonDefaults.buttonColors(
+
+            // Exit code and truncation info
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (exitCode != null) {
+                    val exitColor =
+                        if (exitCode == 0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = "Exit: $exitCode",
+                                color = exitColor,
+                            )
+                        },
+                    )
+                }
+
+                if (wasTruncated && fullLogPath != null) {
+                    TextButton(
+                        onClick = { clipboardManager.setText(AnnotatedString(fullLogPath)) },
+                    ) {
+                        Text(
+                            text = "Output truncated (copy path)",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+            ) {
+                if (isExecuting) {
+                    Button(
+                        onClick = onAbort,
+                        colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error,
                         ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Stop,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp).padding(end = 4.dp),
-                    )
-                    Text("Abort")
-                }
-            } else {
-                Button(
-                    onClick = onExecute,
-                    enabled = command.isNotBlank(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp).padding(end = 4.dp),
-                    )
-                    Text("Execute")
-                }
-            }
-        },
-        dismissButton = {
-            if (!isExecuting) {
-                TextButton(onClick = onDismiss) {
-                    Text("Close")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Stop,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                        )
+                        Text("Abort")
+                    }
+                } else {
+                    TextButton(onClick = onDismiss) {
+                        Text("Close")
+                    }
+                    Button(
+                        onClick = onExecute,
+                        enabled = command.isNotBlank(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                        )
+                        Text("Execute")
+                    }
                 }
             }
-        },
-    )
+        }
+    }
 }
 
 @Suppress("LongParameterList", "LongMethod")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SessionStatsSheet(
     isVisible: Boolean,
@@ -307,17 +322,32 @@ internal fun SessionStatsSheet(
 ) {
     if (!isVisible) return
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val clipboardManager = LocalClipboardManager.current
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = {
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Session Statistics")
+                Text(
+                    text = "Session Statistics",
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 IconButton(onClick = onRefresh) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -325,8 +355,7 @@ internal fun SessionStatsSheet(
                     )
                 }
             }
-        },
-        text = {
+
             if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(32.dp),
@@ -394,13 +423,18 @@ internal fun SessionStatsSheet(
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
+
+            // Close button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Close")
+                }
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -409,12 +443,11 @@ private fun StatsSection(
     content: @Composable () -> Unit,
 ) {
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(12.dp),
     ) {
         Text(
             text = title,
@@ -463,6 +496,7 @@ internal fun formatCost(value: Double): String {
 }
 
 @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ModelPickerSheet(
     isVisible: Boolean,
@@ -475,6 +509,8 @@ internal fun ModelPickerSheet(
     onDismiss: () -> Unit,
 ) {
     if (!isVisible) return
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val filteredModels =
         remember(models, query) {
@@ -524,78 +560,85 @@ internal fun ModelPickerSheet(
         }
     }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Select Model") },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
-            ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    placeholder = { Text("Search models...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                        )
-                    },
-                )
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+        ) {
+            // Header
+            Text(
+                text = "Select Model",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
 
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else if (filteredModels.isEmpty()) {
-                    Text(
-                        text = "No models found",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp),
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text("Search models...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
                     )
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        groupedModels.forEach { (provider, modelsInGroup) ->
-                            item {
-                                Text(
-                                    text = provider.replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                )
-                            }
-                            items(
-                                items = modelsInGroup,
-                                key = { model -> "${model.provider}:${model.id}" },
-                            ) { model ->
-                                ModelItem(
-                                    model = model,
-                                    isSelected =
-                                        currentModel?.id == model.id &&
-                                            currentModel.provider == model.provider,
-                                    onClick = { onSelectModel(model) },
-                                )
-                            }
+                },
+            )
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (filteredModels.isEmpty()) {
+                Text(
+                    text = "No models found",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp),
+                )
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp),
+                ) {
+                    groupedModels.forEach { (provider, modelsInGroup) ->
+                        item {
+                            Text(
+                                text = provider.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        }
+                        items(
+                            items = modelsInGroup,
+                            key = { model -> "${model.provider}:${model.id}" },
+                        ) { model ->
+                            ModelItem(
+                                model = model,
+                                isSelected =
+                                    currentModel?.id == model.id &&
+                                        currentModel.provider == model.provider,
+                                onClick = { onSelectModel(model) },
+                            )
                         }
                     }
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
+        }
+    }
 }
 
 @Suppress("LongMethod")
@@ -606,11 +649,10 @@ private fun ModelItem(
     onClick: () -> Unit,
 ) {
     Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp)
-                .clickable { onClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
         colors =
             if (isSelected) {
                 CardDefaults.cardColors(
@@ -679,6 +721,7 @@ private fun ModelItem(
 }
 
 @Suppress("LongParameterList", "LongMethod")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TreeNavigationSheet(
     isVisible: Boolean,
@@ -693,96 +736,106 @@ internal fun TreeNavigationSheet(
 ) {
     if (!isVisible) return
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val entries = tree?.entries.orEmpty()
     val depthByEntry = remember(entries) { computeDepthMap(entries) }
     val childCountByEntry = remember(entries) { computeChildCountMap(entries) }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Session tree") },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
-                tree?.sessionPath?.let { sessionPath ->
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding(),
+        ) {
+            // Header
+            Text(
+                text = "Session tree",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+
+            tree?.sessionPath?.let { sessionPath ->
+                Text(
+                    text = truncatePath(sessionPath),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+
+            // Scrollable filter chips to avoid overflow
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                items(
+                    items = TREE_FILTER_OPTIONS,
+                    key = { (filter, _) -> filter },
+                ) { (filter, label) ->
+                    FilterChip(
+                        selected = filter == selectedFilter,
+                        onClick = { onFilterChange(filter) },
+                        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                    )
+                }
+            }
+
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                errorMessage != null -> {
                     Text(
-                        text = truncatePath(sessionPath),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
 
-                // Scrollable filter chips to avoid overflow
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    items(
-                        items = TREE_FILTER_OPTIONS,
-                        key = { (filter, _) -> filter },
-                    ) { (filter, label) ->
-                        FilterChip(
-                            selected = filter == selectedFilter,
-                            onClick = { onFilterChange(filter) },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                        )
-                    }
+                entries.isEmpty() -> {
+                    Text(
+                        text = "No tree data available",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
 
-                when {
-                    isLoading -> {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(24.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-
-                    errorMessage != null -> {
-                        Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-
-                    entries.isEmpty() -> {
-                        Text(
-                            text = "No tree data available",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-
-                    else -> {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            items(
-                                items = entries,
-                                key = { entry -> entry.entryId },
-                            ) { entry ->
-                                TreeEntryRow(
-                                    entry = entry,
-                                    depth = depthByEntry[entry.entryId] ?: 0,
-                                    childCount = childCountByEntry[entry.entryId] ?: 0,
-                                    isCurrent = tree?.currentLeafId == entry.entryId,
-                                    onForkFromEntry = onForkFromEntry,
-                                    onJumpAndContinue = onJumpAndContinue,
-                                )
-                            }
+                else -> {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp),
+                    ) {
+                        items(
+                            items = entries,
+                            key = { entry -> entry.entryId },
+                        ) { entry ->
+                            TreeEntryRow(
+                                entry = entry,
+                                depth = depthByEntry[entry.entryId] ?: 0,
+                                childCount = childCountByEntry[entry.entryId] ?: 0,
+                                isCurrent = tree?.currentLeafId == entry.entryId,
+                                onForkFromEntry = onForkFromEntry,
+                                onJumpAndContinue = onJumpAndContinue,
+                            )
                         }
                     }
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
-        },
-    )
+        }
+    }
 }
 
 @Suppress("MagicNumber", "LongMethod", "LongParameterList")
@@ -811,10 +864,9 @@ private fun TreeEntryRow(
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(start = indent),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = containerColor,
-            ),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor,
+        ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
@@ -890,21 +942,19 @@ private fun TreeEntryRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
                     TextButton(
                         onClick = { onJumpAndContinue(entry.entryId) },
-                        contentPadding =
-                            PaddingValues(
-                                horizontal = 8.dp,
-                                vertical = 0.dp,
-                            ),
+                        contentPadding = PaddingValues(
+                            horizontal = 8.dp,
+                            vertical = 0.dp,
+                        ),
                     ) {
                         Text("Jump", style = MaterialTheme.typography.labelSmall)
                     }
                     TextButton(
                         onClick = { onForkFromEntry(entry.entryId) },
-                        contentPadding =
-                            PaddingValues(
-                                horizontal = 8.dp,
-                                vertical = 0.dp,
-                            ),
+                        contentPadding = PaddingValues(
+                            horizontal = 8.dp,
+                            vertical = 0.dp,
+                        ),
                     ) {
                         Text("Fork", style = MaterialTheme.typography.labelSmall)
                     }
