@@ -2,6 +2,8 @@ package com.ayagmar.pimobile.ui.chat
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +51,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -64,6 +71,11 @@ import com.ayagmar.pimobile.chat.ChatTimelineItem
 
 private const val COLLAPSED_OUTPUT_LENGTH = 280
 private const val THINKING_COLLAPSE_THRESHOLD = 280
+private const val THINKING_EXPAND_ANIM_MS = 250
+private const val THINKING_DASH_INTERVAL_PX = 8f
+private const val THINKING_DASH_PHASE_PX = 0f
+private const val THINKING_BORDER_WIDTH_PX = 2.5f
+private const val THINKING_BORDER_RADIUS_PX = 12f
 private const val MAX_ARG_DISPLAY_LENGTH = 100
 private const val MAX_INLINE_USER_IMAGE_PREVIEWS = 4
 private const val USER_IMAGE_PREVIEW_SIZE_DP = 56
@@ -506,6 +518,7 @@ private fun parseAssistantMessageBlocks(text: String): List<AssistantMessageBloc
 }
 
 
+@Suppress("LongMethod")
 @Composable
 private fun ThinkingBlock(
     thinking: String?,
@@ -525,24 +538,46 @@ private fun ThinkingBlock(
         }
 
     val chatColors = LocalChatColors.current
+    val borderColor = chatColors.thinkingBorder
+    val dashEffect = remember {
+        PathEffect.dashPathEffect(
+            floatArrayOf(THINKING_DASH_INTERVAL_PX, THINKING_DASH_INTERVAL_PX),
+            THINKING_DASH_PHASE_PX,
+        )
+    }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = chatColors.thinkingContainer,
-            ),
-        border =
-            androidx.compose.foundation.BorderStroke(
-                width = 1.dp,
-                color = chatColors.thinkingBorder,
-            ),
+    val wordCount = remember(thinking) {
+        thinking.split(Regex("\\s+")).count { it.isNotEmpty() }
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                drawRoundRect(
+                    color = borderColor,
+                    size = Size(size.width, size.height),
+                    cornerRadius = CornerRadius(THINKING_BORDER_RADIUS_PX, THINKING_BORDER_RADIUS_PX),
+                    style = Stroke(
+                        width = THINKING_BORDER_WIDTH_PX,
+                        pathEffect = dashEffect,
+                    ),
+                )
+            },
+        shape = RoundedCornerShape(12.dp),
+        color = chatColors.thinkingContainer,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+                .animateContentSize(animationSpec = tween(THINKING_EXPAND_ANIM_MS)),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = null,
@@ -550,10 +585,17 @@ private fun ThinkingBlock(
                     tint = chatColors.onThinkingContainer,
                 )
                 Text(
-                    text = if (isThinkingComplete) " Thinking" else " Thinking…",
+                    text = if (isThinkingComplete) "Thinking" else "Thinking\u2026",
                     style = MaterialTheme.typography.labelSmall,
                     color = chatColors.onThinkingContainer,
                 )
+                if (isThinkingComplete) {
+                    Text(
+                        text = "\u00B7 $wordCount words",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = chatColors.onThinkingContainer.copy(alpha = 0.6f),
+                    )
+                }
             }
             Text(
                 text = displayThinking,

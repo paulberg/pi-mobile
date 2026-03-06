@@ -60,7 +60,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
   - Tuned body text sizes and tighter line spacing for chat timeline
   - More distinct semantic color tokens for user/assistant/tool/thinking
 
-- [ ] **4.2 Thinking block UX**
+- [x] **4.2 Thinking block UX**
   Currently a nested card with 280-char collapse threshold. Improve:
   - Animated expand/collapse
   - Duration or token count indicator
