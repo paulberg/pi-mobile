@@ -40,12 +40,8 @@ import com.ayagmar.pimobile.chat.EditDiffInfo
 import com.github.difflib.DiffUtils
 import com.github.difflib.patch.AbstractDelta
 import com.github.difflib.patch.DeltaType
-import io.noties.prism4j.AbsVisitor
-import io.noties.prism4j.Prism4j
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.security.MessageDigest
-import java.util.LinkedHashMap
 
 private const val DEFAULT_COLLAPSED_DIFF_LINES = 120
 private const val DEFAULT_CONTEXT_LINES = 3
@@ -95,41 +91,6 @@ private fun rememberDiffViewerColors(): DiffViewerColors {
     }
 }
 
-private enum class SyntaxLanguage(
-    val prismGrammarName: String?,
-) {
-    KOTLIN("kotlin"),
-    JAVA("java"),
-    JAVASCRIPT("javascript"),
-    JSON("json"),
-    MARKDOWN("markdown"),
-    MARKUP("markup"),
-    MAKEFILE("makefile"),
-    PYTHON("python"),
-    GO("go"),
-    SWIFT("swift"),
-    C("c"),
-    CPP("cpp"),
-    CSHARP("csharp"),
-    CSS("css"),
-    SQL("sql"),
-    YAML("yaml"),
-    PLAIN(null),
-}
-
-private enum class HighlightKind {
-    COMMENT,
-    STRING,
-    NUMBER,
-    KEYWORD,
-}
-
-private data class HighlightSpan(
-    val start: Int,
-    val end: Int,
-    val kind: HighlightKind,
-)
-
 private data class DiffPresentationLine(
     val line: DiffLine,
     val highlightSpans: List<HighlightSpan>,
@@ -149,7 +110,7 @@ fun DiffViewer(
     style: DiffViewerStyle = DiffViewerStyle(),
 ) {
     val clipboardManager = LocalClipboardManager.current
-    val syntaxLanguage = remember(diffInfo.path) { detectSyntaxLanguage(diffInfo.path) }
+    val syntaxLanguage = remember(diffInfo.path) { detectSyntaxLanguageFromPath(diffInfo.path) }
     val diffColors = rememberDiffViewerColors()
     val computationState by
         produceState(
@@ -427,6 +388,12 @@ private fun buildHighlightedDiffLine(
 
     val content = line.content
     val baseStyle = SpanStyle(color = baseContentColor, fontFamily = FontFamily.Monospace)
+    val syntaxColors = SyntaxHighlightColors(
+        comment = colors.commentText,
+        string = colors.stringText,
+        number = colors.numberText,
+        keyword = colors.keywordText,
+    )
 
     return buildAnnotatedString {
         append(prefix)
@@ -437,7 +404,7 @@ private fun buildHighlightedDiffLine(
         val offset = 2
         highlightSpans.forEach { span ->
             addStyle(
-                style = highlightKindStyle(span.kind, colors),
+                style = highlightKindStyle(span.kind, syntaxColors),
                 start = span.start + offset,
                 end = span.end + offset,
             )
@@ -469,154 +436,20 @@ private fun computeHighlightSpans(
     content: String,
     language: SyntaxLanguage,
 ): List<HighlightSpan> {
-    return PrismDiffHighlighter.highlight(
+    return PrismHighlighter.highlight(
         content = content,
         language = language,
     )
-}
-
-private object PrismDiffHighlighter {
-    private const val MAX_CACHE_ENTRIES = 256
-
-    private val prism4j by lazy {
-        Prism4j(DiffPrism4jGrammarLocator())
-    }
-
-    private val cache =
-        object : LinkedHashMap<String, List<HighlightSpan>>(MAX_CACHE_ENTRIES, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<HighlightSpan>>?): Boolean {
-                return size > MAX_CACHE_ENTRIES
-            }
-        }
-
-    fun highlight(
-        content: String,
-        language: SyntaxLanguage,
-    ): List<HighlightSpan> {
-        val grammarName = language.prismGrammarName ?: return emptyList()
-        val cacheKey = cacheKey(grammarName = grammarName, content = content)
-        val cached = synchronized(cache) { cache[cacheKey] }
-
-        val spans =
-            cached ?: computeUncached(content = content, grammarName = grammarName).also { computed ->
-                synchronized(cache) {
-                    cache[cacheKey] = computed
-                }
-            }
-
-        return spans
-    }
-
-    private fun cacheKey(
-        grammarName: String,
-        content: String,
-    ): String {
-        val hash = sha256Hex(content)
-        return "$grammarName:${content.length}:$hash"
-    }
-
-    private fun sha256Hex(content: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val bytes = digest.digest(content.toByteArray(Charsets.UTF_8))
-        return bytes.joinToString(separator = "") { byte -> "%02x".format(byte) }
-    }
-
-    private fun computeUncached(
-        content: String,
-        grammarName: String,
-    ): List<HighlightSpan> {
-        val grammar = prism4j.grammar(grammarName) ?: return emptyList()
-        return runCatching {
-            val visitor = PrismHighlightVisitor()
-            visitor.visit(prism4j.tokenize(content, grammar))
-            visitor.spans
-        }.getOrDefault(emptyList())
-    }
-}
-
-private class PrismHighlightVisitor : AbsVisitor() {
-    private val mutableSpans = mutableListOf<HighlightSpan>()
-    private var cursor = 0
-
-    val spans: List<HighlightSpan>
-        get() = mutableSpans
-
-    override fun visitText(text: Prism4j.Text) {
-        cursor += text.literal().length
-    }
-
-    override fun visitSyntax(syntax: Prism4j.Syntax) {
-        val start = cursor
-        visit(syntax.children())
-        val end = cursor
-
-        if (end <= start) {
-            return
-        }
-
-        tokenKind(
-            tokenType = syntax.type(),
-            alias = syntax.alias(),
-        )?.let { kind ->
-            mutableSpans +=
-                HighlightSpan(
-                    start = start,
-                    end = end,
-                    kind = kind,
-                )
-        }
-    }
-}
-
-private fun tokenKind(
-    tokenType: String?,
-    alias: String?,
-): HighlightKind? {
-    val tokenDescriptor = listOfNotNull(tokenType, alias).joinToString(separator = " ").lowercase()
-
-    return when {
-        tokenDescriptor.containsAny(COMMENT_TOKEN_MARKERS) -> HighlightKind.COMMENT
-        tokenDescriptor.containsAny(STRING_TOKEN_MARKERS) -> HighlightKind.STRING
-        tokenDescriptor.containsAny(NUMBER_TOKEN_MARKERS) -> HighlightKind.NUMBER
-        tokenDescriptor.containsAny(KEYWORD_TOKEN_MARKERS) -> HighlightKind.KEYWORD
-        else -> null
-    }
-}
-
-private fun highlightKindStyle(
-    kind: HighlightKind,
-    colors: DiffViewerColors,
-): SpanStyle {
-    return when (kind) {
-        HighlightKind.COMMENT -> SpanStyle(color = colors.commentText)
-        HighlightKind.STRING -> SpanStyle(color = colors.stringText)
-        HighlightKind.NUMBER -> SpanStyle(color = colors.numberText)
-        HighlightKind.KEYWORD -> SpanStyle(color = colors.keywordText)
-    }
-}
-
-private fun String.containsAny(markers: Set<String>): Boolean {
-    return markers.any { marker -> contains(marker) }
 }
 
 internal fun detectHighlightKindsForTest(
     content: String,
     path: String,
 ): Set<String> {
-    val language = detectSyntaxLanguage(path)
+    val language = detectSyntaxLanguageFromPath(path)
     return computeHighlightSpans(content = content, language = language)
         .map { span -> span.kind.name }
         .toSet()
-}
-
-private fun detectSyntaxLanguage(path: String): SyntaxLanguage {
-    val lowerPath = path.lowercase()
-    if (lowerPath.endsWith("makefile")) {
-        return SyntaxLanguage.MAKEFILE
-    }
-
-    val extension = path.substringAfterLast('.', missingDelimiterValue = "").lowercase()
-    return EXTENSION_LANGUAGE_MAP[extension] ?: SyntaxLanguage.PLAIN
 }
 
 /**
@@ -881,41 +714,3 @@ private fun skippedLine(count: Int): DiffLine {
         hiddenUnchangedCount = count,
     )
 }
-
-private val EXTENSION_LANGUAGE_MAP =
-    mapOf(
-        "kt" to SyntaxLanguage.KOTLIN,
-        "kts" to SyntaxLanguage.KOTLIN,
-        "java" to SyntaxLanguage.JAVA,
-        "js" to SyntaxLanguage.JAVASCRIPT,
-        "jsx" to SyntaxLanguage.JAVASCRIPT,
-        "ts" to SyntaxLanguage.JAVASCRIPT,
-        "tsx" to SyntaxLanguage.JAVASCRIPT,
-        "json" to SyntaxLanguage.JSON,
-        "jsonl" to SyntaxLanguage.JSON,
-        "md" to SyntaxLanguage.MARKDOWN,
-        "markdown" to SyntaxLanguage.MARKDOWN,
-        "html" to SyntaxLanguage.MARKUP,
-        "xml" to SyntaxLanguage.MARKUP,
-        "svg" to SyntaxLanguage.MARKUP,
-        "py" to SyntaxLanguage.PYTHON,
-        "go" to SyntaxLanguage.GO,
-        "swift" to SyntaxLanguage.SWIFT,
-        "cs" to SyntaxLanguage.CSHARP,
-        "cpp" to SyntaxLanguage.CPP,
-        "cc" to SyntaxLanguage.CPP,
-        "cxx" to SyntaxLanguage.CPP,
-        "c" to SyntaxLanguage.C,
-        "h" to SyntaxLanguage.C,
-        "css" to SyntaxLanguage.CSS,
-        "scss" to SyntaxLanguage.CSS,
-        "sass" to SyntaxLanguage.CSS,
-        "sql" to SyntaxLanguage.SQL,
-        "yml" to SyntaxLanguage.YAML,
-        "yaml" to SyntaxLanguage.YAML,
-    )
-
-private val COMMENT_TOKEN_MARKERS = setOf("comment", "prolog", "doctype", "cdata")
-private val STRING_TOKEN_MARKERS = setOf("string", "char", "attr-value", "url")
-private val NUMBER_TOKEN_MARKERS = setOf("number", "boolean", "constant")
-private val KEYWORD_TOKEN_MARKERS = setOf("keyword", "operator", "important", "atrule")

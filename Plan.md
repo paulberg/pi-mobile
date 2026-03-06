@@ -33,7 +33,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
   - Integrate a Compose markdown library (e.g. `compose-markdown` or `multiplatform-markdown-renderer`)
   - Or build lightweight parser for the subset we need (bold, italic, code, links, lists, headers)
 
-- [ ] **2.2 Code block improvements**
+- [x] **2.2 Code block improvements**
   - Language label chip (from fence info string)
   - Syntax highlighting via Prism4j (already a dependency, used in DiffViewer but not code blocks)
   - Line numbers for longer blocks

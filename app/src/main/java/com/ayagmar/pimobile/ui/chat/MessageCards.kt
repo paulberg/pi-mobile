@@ -67,60 +67,8 @@ private const val MAX_ARG_DISPLAY_LENGTH = 100
 private const val MAX_INLINE_USER_IMAGE_PREVIEWS = 4
 private const val USER_IMAGE_PREVIEW_SIZE_DP = 56
 private const val TOOL_HIGHLIGHT_MAX_LENGTH = 1_000
+private const val LINE_NUMBER_THRESHOLD = 6
 private val CODE_FENCE_REGEX = Regex("```([\\w+-]*)\\r?\\n([\\s\\S]*?)```")
-private val STRING_REGEX = Regex("\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'")
-private val NUMBER_REGEX = Regex("\\b\\d+(?:\\.\\d+)?\\b")
-private val HASH_COMMENT_REGEX = Regex("#.*$", setOf(RegexOption.MULTILINE))
-private val SLASH_COMMENT_REGEX =
-    Regex(
-        "//.*$|/\\*.*?\\*/",
-        setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL),
-    )
-private val KOTLIN_KEYWORD_REGEX =
-    Regex(
-        "\\b(class|object|interface|fun|val|var|when|if|else|return|suspend|data|sealed|" +
-            "private|public|override|import|package)\\b",
-    )
-private val JAVA_KEYWORD_REGEX =
-    Regex(
-        "\\b(class|interface|enum|public|private|protected|static|final|void|return|if|" +
-            "else|switch|case|new|import|package)\\b",
-    )
-private val PYTHON_KEYWORD_REGEX =
-    Regex(
-        "\\b(def|class|import|from|as|if|elif|else|for|while|return|try|except|with|lambda|pass|break|continue)\\b",
-    )
-private val JS_TS_KEYWORD_REGEX =
-    Regex(
-        "\\b(function|class|const|let|var|return|if|else|switch|case|import|from|export|async|await|interface|type)\\b",
-    )
-private val BASH_KEYWORD_REGEX = Regex("\\b(if|then|fi|for|do|done|case|esac|function|export|echo)\\b")
-private val GENERIC_KEYWORD_REGEX =
-    Regex("\\b(if|else|for|while|return|class|function|import|from|const|let|var|def|public|private)\\b")
-private val TOOL_OUTPUT_LANGUAGE_BY_EXTENSION =
-    mapOf(
-        "kt" to "kotlin",
-        "kts" to "kotlin",
-        "java" to "java",
-        "js" to "javascript",
-        "jsx" to "javascript",
-        "ts" to "typescript",
-        "tsx" to "typescript",
-        "py" to "python",
-        "json" to "json",
-        "jsonl" to "json",
-        "xml" to "xml",
-        "html" to "xml",
-        "svg" to "xml",
-        "sh" to "bash",
-        "bash" to "bash",
-        "sql" to "sql",
-        "yml" to "yaml",
-        "yaml" to "yaml",
-        "go" to "go",
-        "rs" to "rust",
-        "md" to "markdown",
-    )
 
 private sealed interface AssistantMessageBlock {
     data class Paragraph(
@@ -403,26 +351,116 @@ private fun AssistantMessageContent(
     }
 }
 
+@Suppress("LongMethod")
 @Composable
 private fun AssistantCodeBlock(
     code: String,
     language: String?,
     modifier: Modifier = Modifier,
 ) {
+    val syntaxLanguage = remember(language) { codeFenceLanguageToSyntax(language) }
+    val text = code.ifBlank { "(empty code block)" }
     val colors = MaterialTheme.colorScheme
-    val highlighted = highlightCodeBlock(code, language, colors)
+    val syntaxColors = remember(colors) {
+        SyntaxHighlightColors(
+            comment = colors.outline,
+            string = colors.tertiary,
+            number = colors.secondary,
+            keyword = colors.primary,
+        )
+    }
+    val spans = remember(text, syntaxLanguage) {
+        PrismHighlighter.highlight(content = text, language = syntaxLanguage)
+    }
+    val lines = remember(text) { text.lines() }
+    val showLineNumbers = lines.size >= LINE_NUMBER_THRESHOLD
+    val gutterWidth = if (showLineNumbers) (lines.size.toString().length * 8 + 12).dp else 0.dp
+    val clipboardManager = LocalClipboardManager.current
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+        color = colors.surfaceVariant.copy(alpha = 0.85f),
     ) {
-        SelectionContainer {
-            Text(
-                text = highlighted,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.padding(12.dp),
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header row: language chip + copy button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.surfaceVariant)
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = syntaxLanguage.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant,
+                )
+                IconButton(
+                    onClick = { clipboardManager.setText(AnnotatedString(text)) },
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy code",
+                        modifier = Modifier.size(14.dp),
+                        tint = colors.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // Code content with optional line numbers
+            SelectionContainer {
+                if (showLineNumbers) {
+                    Row(modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)) {
+                        // Line number gutter
+                        Column(modifier = Modifier.width(gutterWidth)) {
+                            lines.forEachIndexed { index, _ ->
+                                Text(
+                                    text = "${index + 1}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(end = 8.dp),
+                                )
+                            }
+                        }
+                        // Code text
+                        Text(
+                            text = buildPrismHighlightedString(text, spans, colors.onSurface, syntaxColors),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                } else {
+                    Text(
+                        text = buildPrismHighlightedString(text, spans, colors.onSurface, syntaxColors),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun buildPrismHighlightedString(
+    text: String,
+    spans: List<HighlightSpan>,
+    baseColor: Color,
+    syntaxColors: SyntaxHighlightColors,
+): AnnotatedString {
+    return buildAnnotatedString {
+        append(text)
+        addStyle(SpanStyle(color = baseColor), 0, text.length)
+        spans.forEach { span ->
+            addStyle(
+                style = highlightKindStyle(span.kind, syntaxColors),
+                start = span.start,
+                end = span.end,
             )
         }
     }
@@ -461,57 +499,6 @@ private fun parseAssistantMessageBlocks(text: String): List<AssistantMessageBloc
     return blocks
 }
 
-private fun highlightCodeBlock(
-    code: String,
-    language: String?,
-    colors: androidx.compose.material3.ColorScheme,
-): AnnotatedString {
-    val text = code.ifBlank { "(empty code block)" }
-    val commentPattern = commentRegexFor(language)
-    val keywordPattern = keywordRegexFor(language)
-
-    val commentStyle = SpanStyle(color = colors.outline)
-    val stringStyle = SpanStyle(color = colors.tertiary)
-    val numberStyle = SpanStyle(color = colors.secondary)
-    val keywordStyle = SpanStyle(color = colors.primary)
-
-    return buildAnnotatedString {
-        append(text)
-
-        applyStyle(STRING_REGEX, stringStyle, text)
-        applyStyle(NUMBER_REGEX, numberStyle, text)
-        applyStyle(keywordPattern, keywordStyle, text)
-        applyStyle(commentPattern, commentStyle, text)
-    }
-}
-
-private fun AnnotatedString.Builder.applyStyle(
-    regex: Regex,
-    style: SpanStyle,
-    text: String,
-) {
-    regex.findAll(text).forEach { match ->
-        addStyle(style, match.range.first, match.range.last + 1)
-    }
-}
-
-private fun keywordRegexFor(language: String?): Regex {
-    return when (language?.lowercase()) {
-        "kotlin", "kt" -> KOTLIN_KEYWORD_REGEX
-        "java" -> JAVA_KEYWORD_REGEX
-        "python", "py" -> PYTHON_KEYWORD_REGEX
-        "javascript", "js", "typescript", "ts", "tsx" -> JS_TS_KEYWORD_REGEX
-        "bash", "shell", "sh" -> BASH_KEYWORD_REGEX
-        else -> GENERIC_KEYWORD_REGEX
-    }
-}
-
-private fun commentRegexFor(language: String?): Regex {
-    return when (language?.lowercase()) {
-        "python", "py", "bash", "shell", "sh", "yaml", "yml" -> HASH_COMMENT_REGEX
-        else -> SLASH_COMMENT_REGEX
-    }
-}
 
 @Composable
 private fun ThinkingBlock(
@@ -683,14 +670,17 @@ private fun ToolCard(
                 SelectionContainer {
                     if (shouldHighlight) {
                         val inferredLanguage = inferLanguageFromToolContext(item)
-                        val highlightedOutput =
-                            highlightCodeBlock(
-                                code = rawOutput,
-                                language = inferredLanguage,
-                                colors = MaterialTheme.colorScheme,
-                            )
+                        val syntaxColors = SyntaxHighlightColors(
+                            comment = MaterialTheme.colorScheme.outline,
+                            string = MaterialTheme.colorScheme.tertiary,
+                            number = MaterialTheme.colorScheme.secondary,
+                            keyword = MaterialTheme.colorScheme.primary,
+                        )
+                        val spans = remember(rawOutput, inferredLanguage) {
+                            PrismHighlighter.highlight(content = rawOutput, language = inferredLanguage)
+                        }
                         Text(
-                            text = highlightedOutput,
+                            text = buildPrismHighlightedString(rawOutput, spans, MaterialTheme.colorScheme.onSurface, syntaxColors),
                             style = MaterialTheme.typography.bodyMedium,
                             fontFamily = FontFamily.Monospace,
                         )
@@ -830,8 +820,7 @@ private fun getToolInfo(toolName: String): ToolDisplayInfo {
     }
 }
 
-private fun inferLanguageFromToolContext(item: ChatTimelineItem.Tool): String? {
-    val path = item.arguments["path"] ?: return null
-    val extension = path.substringAfterLast('.', missingDelimiterValue = "").lowercase()
-    return TOOL_OUTPUT_LANGUAGE_BY_EXTENSION[extension]
+private fun inferLanguageFromToolContext(item: ChatTimelineItem.Tool): SyntaxLanguage {
+    val path = item.arguments["path"] ?: return SyntaxLanguage.PLAIN
+    return detectSyntaxLanguageFromPath(path)
 }
