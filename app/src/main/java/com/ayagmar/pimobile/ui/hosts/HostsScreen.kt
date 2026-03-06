@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -17,6 +18,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -49,6 +51,7 @@ fun HostsRoute(
     profileStore: HostProfileStore,
     tokenStore: HostTokenStore,
     diagnostics: ConnectionDiagnostics,
+    onOpenDrawer: () -> Unit = {},
 ) {
     val factory =
         remember(profileStore, tokenStore, diagnostics) {
@@ -65,6 +68,7 @@ fun HostsRoute(
 
     HostsScreen(
         state = uiState,
+        onOpenDrawer = onOpenDrawer,
         onAddClick = {
             editorDraft = HostDraft()
         },
@@ -104,6 +108,7 @@ fun HostsRoute(
 @Composable
 private fun HostsScreen(
     state: HostsUiState,
+    onOpenDrawer: () -> Unit,
     onAddClick: () -> Unit,
     onEditClick: (HostProfileItem) -> Unit,
     onDeleteClick: (String) -> Unit,
@@ -118,10 +123,18 @@ private fun HostsScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "Hosts",
-                style = MaterialTheme.typography.headlineSmall,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Open navigation",
+                    )
+                }
+                Text(
+                    text = "Hosts",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+            }
             Button(onClick = onAddClick) {
                 Text("Add host")
             }

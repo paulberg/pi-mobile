@@ -95,6 +95,7 @@ internal fun ChatHeader(
     contextUsageLabel: String,
     errorMessage: String?,
     showControls: Boolean,
+    onOpenDrawer: () -> Unit,
     callbacks: ChatCallbacks,
 ) {
     val isCompact = isRunActive
@@ -107,6 +108,12 @@ internal fun ChatHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            IconButton(onClick = onOpenDrawer) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Open navigation",
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 val title = extensionTitle ?: "Chat"
                 Text(

@@ -9,9 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -57,6 +61,7 @@ fun SessionsRoute(
     sessionController: SessionController,
     cwdPreferenceStore: SessionCwdPreferenceStore,
     onNavigateToChat: () -> Unit = {},
+    onOpenDrawer: () -> Unit = {},
 ) {
     val factory =
         remember(profileStore, tokenStore, repository, sessionController, cwdPreferenceStore) {
@@ -100,6 +105,7 @@ fun SessionsRoute(
     SessionsScreen(
         state = uiState,
         transientStatusMessage = transientStatusMessage,
+        onOpenDrawer = onOpenDrawer,
         callbacks =
             SessionsScreenCallbacks(
                 onHostSelected = sessionsViewModel::onHostSelected,
@@ -163,6 +169,7 @@ private data class RenameDialogUiState(
 private fun SessionsScreen(
     state: SessionsUiState,
     transientStatusMessage: String?,
+    onOpenDrawer: () -> Unit,
     callbacks: SessionsScreenCallbacks,
 ) {
     var renameDraft by remember { mutableStateOf("") }
@@ -180,6 +187,7 @@ private fun SessionsScreen(
         SessionsHeader(
             state = state,
             activeSession = activeSession,
+            onOpenDrawer = onOpenDrawer,
             callbacks = callbacks,
         )
 
@@ -347,9 +355,18 @@ private fun CustomCwdSheet(
 private fun SessionsHeader(
     state: SessionsUiState,
     activeSession: SessionRecord?,
+    onOpenDrawer: () -> Unit,
     callbacks: SessionsScreenCallbacks,
 ) {
     PiTopBar(
+        navigationIcon = {
+            IconButton(onClick = onOpenDrawer) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Open navigation",
+                )
+            }
+        },
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(

@@ -142,6 +142,7 @@ internal data class ChatCallbacks(
 fun ChatRoute(
     sessionController: SessionController,
     showExtensionStatusStrip: Boolean,
+    onOpenDrawer: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -252,6 +253,7 @@ fun ChatRoute(
         state = uiState,
         callbacks = callbacks,
         showExtensionStatusStrip = showExtensionStatusStrip,
+        onOpenDrawer = onOpenDrawer,
     )
 }
 
@@ -261,6 +263,7 @@ private fun ChatScreen(
     state: ChatUiState,
     callbacks: ChatCallbacks,
     showExtensionStatusStrip: Boolean,
+    onOpenDrawer: () -> Unit,
 ) {
     StreamingFrameMetrics(
         isStreaming = state.isStreaming,
@@ -277,6 +280,7 @@ private fun ChatScreen(
         state = state,
         callbacks = callbacks,
         showExtensionStatusStrip = showExtensionStatusStrip,
+        onOpenDrawer = onOpenDrawer,
     )
 
     ExtensionUiDialogs(
@@ -354,6 +358,7 @@ private fun ChatScreenContent(
     state: ChatUiState,
     callbacks: ChatCallbacks,
     showExtensionStatusStrip: Boolean,
+    onOpenDrawer: () -> Unit,
 ) {
     val hasStreamingTimelineItem =
         remember(state.timeline) {
@@ -430,6 +435,7 @@ private fun ChatScreenContent(
             contextUsageLabel = formatContextUsageLabel(state.sessionStats, state.currentModel),
             errorMessage = state.errorMessage,
             showControls = showHeaderControls,
+            onOpenDrawer = onOpenDrawer,
             callbacks = callbacks,
         )
 
