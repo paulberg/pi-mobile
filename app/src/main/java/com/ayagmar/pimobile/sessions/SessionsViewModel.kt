@@ -162,6 +162,34 @@ class SessionsViewModel(
         }
     }
 
+    fun newSessionWithCwd(cwd: String) {
+        val hostId = _uiState.value.selectedHostId ?: return
+        val selectedHost = _uiState.value.hosts.firstOrNull { host -> host.id == hostId } ?: return
+        val normalizedCwd = cwd.trim().takeIf { it.isNotBlank() } ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val token = tokenStore.getToken(hostId)
+            if (token.isNullOrBlank()) {
+                emitError("No token configured for host ${selectedHost.name}")
+                return@launch
+            }
+
+            _uiState.update { current ->
+                current.copy(isResuming = true, isPerformingAction = false, errorMessage = null)
+            }
+
+            val connectResult = sessionController.ensureConnected(selectedHost, token, normalizedCwd)
+            if (connectResult.isFailure) {
+                emitError(connectResult.exceptionOrNull()?.message ?: "Failed to connect for new session")
+                return@launch
+            }
+
+            persistPreferredCwd(hostId = hostId, cwd = normalizedCwd)
+            markConnectionWarm(hostId = hostId, cwd = normalizedCwd)
+            completeNewSession()
+        }
+    }
+
     private suspend fun completeNewSession() {
         val newSessionResult = sessionController.newSession()
         if (newSessionResult.isSuccess) {

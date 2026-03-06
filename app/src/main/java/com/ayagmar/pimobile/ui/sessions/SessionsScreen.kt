@@ -10,10 +10,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -105,6 +108,7 @@ fun SessionsRoute(
                 onToggleFlatView = sessionsViewModel::toggleFlatView,
                 onRefreshClick = sessionsViewModel::refreshSessions,
                 onNewSession = sessionsViewModel::newSession,
+                onNewSessionWithCwd = sessionsViewModel::newSessionWithCwd,
                 onResumeClick = sessionsViewModel::resumeSession,
                 onRename = { name -> sessionsViewModel.runSessionAction(SessionAction.Rename(name)) },
                 onFork = sessionsViewModel::requestForkMessages,
@@ -123,6 +127,7 @@ private data class SessionsScreenCallbacks(
     val onToggleFlatView: () -> Unit,
     val onRefreshClick: () -> Unit,
     val onNewSession: () -> Unit,
+    val onNewSessionWithCwd: (String) -> Unit,
     val onResumeClick: (SessionRecord) -> Unit,
     val onRename: (String) -> Unit,
     val onFork: () -> Unit,
@@ -141,6 +146,7 @@ private data class ActiveSessionActionCallbacks(
 
 private data class SessionsListCallbacks(
     val onCwdSelected: (String) -> Unit,
+    val onAddCustomCwd: () -> Unit,
     val onResumeClick: (SessionRecord) -> Unit,
     val actions: ActiveSessionActionCallbacks,
 )
@@ -165,6 +171,7 @@ private fun SessionsScreen(
         remember(state.groups, state.activeSessionPath) {
             findSessionByPath(state.groups, state.activeSessionPath)
         }
+    var showCustomCwdSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(PiSpacing.md),
@@ -205,6 +212,7 @@ private fun SessionsScreen(
                     onExport = callbacks.onExport,
                     onCompact = callbacks.onCompact,
                 ),
+            onAddCustomCwd = { showCustomCwdSheet = true },
         )
     }
 
@@ -220,6 +228,17 @@ private fun SessionsScreen(
                 onDismiss = { showRenameDialog = false },
             ),
     )
+
+    if (showCustomCwdSheet) {
+        CustomCwdSheet(
+            isBusy = state.isResuming,
+            onDismiss = { showCustomCwdSheet = false },
+            onStartSession = { cwd ->
+                showCustomCwdSheet = false
+                callbacks.onNewSessionWithCwd(cwd)
+            },
+        )
+    }
 }
 
 @Composable
@@ -249,6 +268,52 @@ private fun SessionsDialogs(
             onDismiss = callbacks.onDismissForkDialog,
             onSelect = callbacks.onForkMessageSelected,
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomCwdSheet(
+    isBusy: Boolean,
+    onDismiss: () -> Unit,
+    onStartSession: (String) -> Unit,
+) {
+    var cwdDraft by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(PiSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(PiSpacing.sm),
+        ) {
+            Text(
+                text = "New session in custom directory",
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            Text(
+                text = "Enter the absolute path of the working directory on the remote host.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            PiTextField(
+                value = cwdDraft,
+                onValueChange = { cwdDraft = it },
+                label = "Directory path",
+                placeholder = "/home/user/projects/my-app",
+            )
+
+            PiButton(
+                label = if (isBusy) "Starting..." else "Start Session",
+                enabled = cwdDraft.isNotBlank() && !isBusy,
+                onClick = { onStartSession(cwdDraft) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -323,6 +388,7 @@ private fun SessionsContent(
     state: SessionsUiState,
     callbacks: SessionsScreenCallbacks,
     activeSessionActions: ActiveSessionActionCallbacks,
+    onAddCustomCwd: () -> Unit,
 ) {
     when {
         state.isLoading -> {
@@ -356,6 +422,7 @@ private fun SessionsContent(
                     isBusy = state.isResuming || state.isPerformingAction,
                     onResumeClick = callbacks.onResumeClick,
                     actions = activeSessionActions,
+                    onAddCustomCwd = onAddCustomCwd,
                 )
             } else {
                 SessionsList(
@@ -366,6 +433,7 @@ private fun SessionsContent(
                     callbacks =
                         SessionsListCallbacks(
                             onCwdSelected = callbacks.onCwdSelected,
+                            onAddCustomCwd = onAddCustomCwd,
                             onResumeClick = callbacks.onResumeClick,
                             actions = activeSessionActions,
                         ),
@@ -422,6 +490,7 @@ private fun SessionsList(
             groups = groups,
             selectedCwd = resolvedSelectedCwd,
             onCwdSelected = callbacks.onCwdSelected,
+            onAddCustomCwd = callbacks.onAddCustomCwd,
         )
 
         selectedGroup?.let { group ->
@@ -456,6 +525,7 @@ internal fun CwdChipSelector(
     groups: List<CwdSessionGroupUiState>,
     selectedCwd: String?,
     onCwdSelected: (String) -> Unit,
+    onAddCustomCwd: () -> Unit,
 ) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items = groups, key = { group -> group.cwd }) { group ->
@@ -472,6 +542,14 @@ internal fun CwdChipSelector(
                 },
             )
         }
+
+        item(key = "__add_custom_cwd__") {
+            FilterChip(
+                selected = false,
+                onClick = onAddCustomCwd,
+                label = { Text("+") },
+            )
+        }
     }
 }
 
@@ -482,6 +560,7 @@ private fun FlatSessionsList(
     isBusy: Boolean,
     onResumeClick: (SessionRecord) -> Unit,
     actions: ActiveSessionActionCallbacks,
+    onAddCustomCwd: () -> Unit,
 ) {
     // Flatten all sessions and sort by updatedAt (most recent first)
     val allSessions =
@@ -489,19 +568,34 @@ private fun FlatSessionsList(
             groups.flatMap { it.sessions }.sortedByDescending { it.updatedAt }
         }
 
-    LazyColumn(
+    Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(items = allSessions, key = { session -> session.sessionPath }) { session ->
-            SessionCard(
-                session = session,
-                isActive = activeSessionPath == session.sessionPath,
-                isBusy = isBusy,
-                onResumeClick = { onResumeClick(session) },
-                actions = actions,
-                showCwd = true,
-            )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item(key = "__add_custom_cwd_flat__") {
+                FilterChip(
+                    selected = false,
+                    onClick = onAddCustomCwd,
+                    label = { Text("+ Custom directory") },
+                )
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(items = allSessions, key = { session -> session.sessionPath }) { session ->
+                SessionCard(
+                    session = session,
+                    isActive = activeSessionPath == session.sessionPath,
+                    isBusy = isBusy,
+                    onResumeClick = { onResumeClick(session) },
+                    actions = actions,
+                    showCwd = true,
+                )
+            }
         }
     }
 }

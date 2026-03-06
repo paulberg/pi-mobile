@@ -81,3 +81,71 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
 | **Phase 2** | 2.1, 2.2 | Biggest UX impact, content readability |
 | **Phase 3** | 3.1, 3.2, 3.3 | Mobile-native feel |
 | **Phase 4** | 4.1, 4.2, 4.3 | Polish and identity |
+| **Phase 5** | 5.1, 5.2 | New session in custom directory |
+
+---
+
+## Phase 5 — Custom Working Directory for New Sessions
+
+### Problem
+
+When tapping "New" on the Sessions screen, the app creates a session in a cwd resolved
+from existing session groups (`resolveConnectionCwd` in `SessionsViewModel.kt:699`). There
+is no way to start a session in a directory that doesn't already have sessions. If the
+resolved cwd is locked by another client, the user gets a `control_lock_denied` error with
+no recourse.
+
+### Background
+
+- The bridge protocol fully supports arbitrary cwds — `bridge_set_cwd` accepts any valid
+  path on the host machine. No bridge changes needed.
+- The `CwdChipSelector` (`SessionsScreen.kt:435`) already lets users pick among existing
+  session-group cwds, but there's no option to enter a new path.
+- `SessionsViewModel.newSession()` (`SessionsViewModel.kt:138`) calls
+  `resolveConnectionCwdForHost()` which falls back through: selected chip cwd → warm
+  connection cwd → first group cwd → `"/home/user"`.
+
+### Plan
+
+- [x] **5.1 "Custom directory" chip + input sheet**
+
+  Add an affordance to enter an arbitrary directory path when creating a new session:
+
+  1. **Add a "+" chip** at the end of the `CwdChipSelector` `LazyRow` (after the existing
+     group chips). Tapping it opens a `ModalBottomSheet` with a text field for entering a
+     directory path.
+
+  2. **`CustomCwdSheet` composable** in `SessionsScreen.kt`:
+     - Text field with placeholder "e.g. /home/rogue/git/my-project"
+     - "Start Session" button that calls a new callback `onNewSessionWithCwd(cwd: String)`
+     - Basic validation: non-blank, starts with `/`
+     - The sheet dismisses on submit
+
+  3. **Wire the callback** through `SessionsScreenCallbacks` →
+     `SessionsViewModel.newSessionWithCwd(cwd: String)`:
+     - Same logic as `newSession()` but uses the provided `cwd` directly instead of
+       `resolveConnectionCwdForHost()`
+     - On success, persist the cwd via `SessionCwdPreferenceStore` so it becomes the
+       selected cwd for subsequent operations
+
+  **Files changed:**
+  - `SessionsScreen.kt` — add "+" chip, `CustomCwdSheet`, new callback
+  - `SessionsViewModel.kt` — add `newSessionWithCwd(cwd)` method
+
+- [ ] **5.2 Recent directories + autocomplete**
+
+  After 5.1 is functional, improve discoverability:
+
+  1. **Persist recent custom cwds** in `SessionCwdPreferenceStore` (or a new
+     `RecentCwdStore`). Cap at ~10 entries, most-recent-first.
+
+  2. **Show recent cwds as suggestions** in the `CustomCwdSheet` below the text field —
+     tappable chips or a short list. Tapping one fills the text field.
+
+  3. **Show cwds from other hosts** as suggestions (the user may have sessions on the same
+     machine via a different host profile pointing to the same bridge).
+
+  **Files changed:**
+  - `SessionCwdPreferenceStore.kt` (or new `RecentCwdStore.kt`) — persist recent cwds
+  - `SessionsScreen.kt` — suggestion chips in `CustomCwdSheet`
+  - `SessionsViewModel.kt` — expose recent cwds in UI state
