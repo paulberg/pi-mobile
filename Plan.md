@@ -27,7 +27,7 @@ rendering and mobile-native interaction patterns. `ChatScreen.kt` is a 3,767-lin
 
 ## Phase 2 — Content Readability
 
-- [ ] **2.1 Markdown rendering**
+- [x] **2.1 Markdown rendering**
   Only code fences are parsed today. Bold, italic, headers, lists, links, tables render as
   plain text. Options:
   - Integrate a Compose markdown library (e.g. `compose-markdown` or `multiplatform-markdown-renderer`)

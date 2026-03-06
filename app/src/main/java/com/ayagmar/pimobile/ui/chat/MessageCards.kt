@@ -365,13 +365,12 @@ private fun AssistantMessageContent(
         return
     }
 
-    // Fast path for common plain-text streaming updates (avoid regex parsing/jank on each delta).
+    // Fast path: no code fences — render with block-level markdown (headers, lists, etc.)
     if (!text.contains("```")) {
-        Text(
+        MarkdownText(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
             modifier = modifier,
+            baseColor = MaterialTheme.colorScheme.onSurface,
         )
         return
     }
@@ -386,10 +385,9 @@ private fun AssistantMessageContent(
             when (block) {
                 is AssistantMessageBlock.Paragraph -> {
                     if (block.text.isNotBlank()) {
-                        Text(
+                        MarkdownText(
                             text = block.text,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            baseColor = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
