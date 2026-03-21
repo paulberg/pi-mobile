@@ -1,5 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import readline from "node:readline";
+import type { Readable } from "node:stream";
+import { StringDecoder } from "node:string_decoder";
 
 import type { Logger } from "pino";
 
@@ -39,7 +41,7 @@ export function createPiRpcForwarder(config: PiRpcForwarderConfig, logger: Logge
     const maxRestartDelayMs = config.maxRestartDelayMs ?? DEFAULT_MAX_RESTART_DELAY_MS;
 
     let processRef: ChildProcessWithoutNullStreams | undefined;
-    let stdoutReader: readline.Interface | undefined;
+    let stdoutCleanup: (() => void) | undefined;
     let stderrReader: readline.Interface | undefined;
     let restartTimer: NodeJS.Timeout | undefined;
 
@@ -51,9 +53,9 @@ export function createPiRpcForwarder(config: PiRpcForwarderConfig, logger: Logge
     let restartAttempt = 0;
 
     const cleanup = (): void => {
-        stdoutReader?.close();
+        stdoutCleanup?.();
+        stdoutCleanup = undefined;
         stderrReader?.close();
-        stdoutReader = undefined;
         stderrReader = undefined;
         processRef = undefined;
     };
@@ -121,11 +123,7 @@ export function createPiRpcForwarder(config: PiRpcForwarderConfig, logger: Logge
             scheduleRestart();
         });
 
-        stdoutReader = readline.createInterface({
-            input: child.stdout,
-            crlfDelay: Infinity,
-        });
-        stdoutReader.on("line", (line) => {
+        stdoutCleanup = attachJsonlReader(child.stdout, (line) => {
             const parsedMessage = tryParseJsonObject(line);
             if (!parsedMessage) {
                 logger.warn(
@@ -221,6 +219,57 @@ export function createPiRpcForwarder(config: PiRpcForwarderConfig, logger: Logge
                 child.kill("SIGTERM");
             });
         },
+    };
+}
+
+function attachJsonlReader(
+    stream: Readable,
+    onLine: (line: string) => void,
+): () => void {
+    const decoder = new StringDecoder("utf8");
+    let buffer = "";
+
+    const flushBuffer = (): void => {
+        while (true) {
+            const newlineIndex = buffer.indexOf("\n");
+            if (newlineIndex === -1) {
+                return;
+            }
+
+            let line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+
+            if (line.endsWith("\r")) {
+                line = line.slice(0, -1);
+            }
+
+            onLine(line);
+        }
+    };
+
+    const handleData = (chunk: string | Buffer): void => {
+        buffer += typeof chunk === "string" ? chunk : decoder.write(chunk);
+        flushBuffer();
+    };
+
+    const handleEnd = (): void => {
+        buffer += decoder.end();
+
+        if (!buffer) {
+            return;
+        }
+
+        const trailingLine = buffer.endsWith("\r") ? buffer.slice(0, -1) : buffer;
+        buffer = "";
+        onLine(trailingLine);
+    };
+
+    stream.on("data", handleData);
+    stream.on("end", handleEnd);
+
+    return () => {
+        stream.off("data", handleData);
+        stream.off("end", handleEnd);
     };
 }
 

@@ -97,6 +97,7 @@ If reconnecting with same `clientId`, `resumed` may be `true` and previous `cwd`
 | `bridge_list_sessions` | `bridge_sessions` | Returns grouped session metadata |
 | `bridge_get_session_tree` | `bridge_session_tree` | Requires `sessionPath`; supports filter |
 | `bridge_get_session_freshness` | `bridge_session_freshness` | Returns freshness fingerprint + lock owner metadata |
+| `bridge_import_session_jsonl` | `bridge_session_imported` | Requires control lock; uploads a JSONL session into the active runtime session dir and switches to it |
 | `bridge_navigate_tree` | `bridge_tree_navigation_result` | Requires control lock; uses internal extension command |
 | `bridge_set_cwd` | `bridge_cwd_set` | Sets active cwd context for client |
 | `bridge_acquire_control` | `bridge_control_acquired` | Acquires write lock for cwd/session |
@@ -147,6 +148,34 @@ Response payload:
   }
 }
 ```
+
+### `bridge_import_session_jsonl`
+
+Request payload:
+
+```json
+{
+  "type": "bridge_import_session_jsonl",
+  "fileName": "shared-session.jsonl",
+  "content": "{\"type\":\"session\",...}\n{...}\n"
+}
+```
+
+Response payload:
+
+```json
+{
+  "type": "bridge_session_imported",
+  "sessionPath": "/.../shared-session.jsonl"
+}
+```
+
+Notes:
+
+- requires cwd context + control lock
+- writes the uploaded JSONL into the bridge session directory
+- switches the active pi runtime to the imported session
+- filename is sanitized and uniqued server-side to avoid path traversal and overwrites
 
 ### `bridge_navigate_tree`
 
@@ -214,6 +243,7 @@ Common codes:
 - `invalid_session_path`
 - `invalid_tree_filter`
 - `invalid_tree_entry_id`
+- `invalid_import_payload`
 - `control_lock_required`
 - `control_lock_denied`
 - `invalid_rpc_payload`
@@ -222,6 +252,7 @@ Common codes:
 - `session_index_failed`
 - `session_tree_failed`
 - `session_freshness_failed`
+- `session_import_failed`
 
 ## Health Endpoint
 

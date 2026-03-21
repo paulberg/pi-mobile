@@ -41,6 +41,42 @@ describe("createPiRpcForwarder", () => {
         await forwarder.stop();
     });
 
+    it("preserves JSON payloads that contain unicode line separator characters", async () => {
+        const fixtureScriptPath = path.resolve(
+            path.dirname(fileURLToPath(import.meta.url)),
+            "fixtures/unicode-jsonl-rpc-process.mjs",
+        );
+
+        const receivedMessages: Record<string, unknown>[] = [];
+        const forwarder = createPiRpcForwarder(
+            {
+                command: process.execPath,
+                args: [fixtureScriptPath],
+                cwd: process.cwd(),
+            },
+            createLogger("silent"),
+        );
+
+        forwarder.setMessageHandler((payload) => {
+            receivedMessages.push(payload);
+        });
+
+        forwarder.send({
+            id: "unicode-1",
+            type: "get_state",
+        });
+
+        const forwardedMessage = await waitForMessage(receivedMessages);
+        const expectedText = `before${String.fromCharCode(0x2028)}middle${String.fromCharCode(0x2029)}after`;
+
+        expect(forwardedMessage.id).toBe("unicode-1");
+        expect(forwardedMessage.type).toBe("response");
+        expect(forwardedMessage.command).toBe("get_state");
+        expect((forwardedMessage.data as Record<string, unknown>)?.text).toBe(expectedText);
+
+        await forwarder.stop();
+    });
+
     it("restarts crashed subprocess with backoff while active", async () => {
         const fixtureScriptPath = path.resolve(
             path.dirname(fileURLToPath(import.meta.url)),

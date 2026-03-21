@@ -1,4 +1,5 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { access, mkdir, unlink, writeFile } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,7 +80,22 @@ const BRIDGE_NAVIGATE_TREE_TYPE = "bridge_navigate_tree";
 const BRIDGE_TREE_NAVIGATION_RESULT_TYPE = "bridge_tree_navigation_result";
 const BRIDGE_GET_SESSION_FRESHNESS_TYPE = "bridge_get_session_freshness";
 const BRIDGE_SESSION_FRESHNESS_TYPE = "bridge_session_freshness";
+const BRIDGE_IMPORT_SESSION_JSONL_TYPE = "bridge_import_session_jsonl";
+const BRIDGE_SESSION_IMPORTED_TYPE = "bridge_session_imported";
 const BRIDGE_INTERNAL_RPC_TIMEOUT_MS = 10_000;
+
+export function buildPiRpcArgs(sessionDirectory: string): string[] {
+    return [
+        "--mode",
+        "rpc",
+        "--session-dir",
+        sessionDirectory,
+        "--extension",
+        PI_MOBILE_TREE_EXTENSION_PATH,
+        "--extension",
+        PI_MOBILE_WORKFLOW_EXTENSION_PATH,
+    ];
+}
 
 export function createBridgeServer(
     config: BridgeConfig,
@@ -97,14 +113,7 @@ export function createBridgeServer(
                 return createPiRpcForwarder(
                     {
                         command: "pi",
-                        args: [
-                            "--mode",
-                            "rpc",
-                            "--extension",
-                            PI_MOBILE_TREE_EXTENSION_PATH,
-                            "--extension",
-                            PI_MOBILE_WORKFLOW_EXTENSION_PATH,
-                        ],
+                        args: buildPiRpcArgs(config.sessionDirectory),
                         cwd,
                     },
                     logger.child({ component: "rpc-forwarder", cwd }),
@@ -308,6 +317,7 @@ export function createBridgeServer(
                 processManager,
                 sessionIndexer,
                 restored.context,
+                config,
                 awaitRpcEvent,
                 runtimeLeafBySessionPath,
             );
@@ -401,6 +411,7 @@ async function handleClientMessage(
     processManager: PiProcessManager,
     sessionIndexer: SessionIndexer,
     context: ClientConnectionContext,
+    config: BridgeConfig,
     awaitRpcEvent: (
         cwd: string,
         predicate: (payload: Record<string, unknown>) => boolean,
@@ -441,6 +452,7 @@ async function handleClientMessage(
             processManager,
             sessionIndexer,
             logger,
+            config,
             awaitRpcEvent,
             runtimeLeafBySessionPath,
         );
@@ -457,6 +469,7 @@ async function handleBridgeControlMessage(
     processManager: PiProcessManager,
     sessionIndexer: SessionIndexer,
     logger: Logger,
+    config: BridgeConfig,
     awaitRpcEvent: (
         cwd: string,
         predicate: (payload: Record<string, unknown>) => boolean,
@@ -606,6 +619,81 @@ async function handleBridgeControlMessage(
                     createBridgeErrorEnvelope(
                         "session_freshness_failed",
                         "Failed to read session freshness",
+                    ),
+                ),
+            );
+        }
+
+        return;
+    }
+
+    if (messageType === BRIDGE_IMPORT_SESSION_JSONL_TYPE) {
+        const cwd = getRequestedCwd(payload, context);
+        if (!cwd) {
+            client.send(
+                JSON.stringify(
+                    createBridgeErrorEnvelope(
+                        "missing_cwd_context",
+                        "Set cwd first via bridge_set_cwd or include cwd in bridge_import_session_jsonl",
+                    ),
+                ),
+            );
+            return;
+        }
+
+        if (!processManager.hasControl(context.clientId, cwd)) {
+            client.send(
+                JSON.stringify(
+                    createBridgeErrorEnvelope(
+                        "control_lock_required",
+                        "Acquire control first via bridge_acquire_control",
+                    ),
+                ),
+            );
+            return;
+        }
+
+        const content = typeof payload.content === "string" ? payload.content : undefined;
+        if (!content) {
+            client.send(
+                JSON.stringify(
+                    createBridgeErrorEnvelope(
+                        "invalid_import_payload",
+                        "content must be a non-empty JSONL string",
+                    ),
+                ),
+            );
+            return;
+        }
+
+        const requestedFileName = typeof payload.fileName === "string" ? payload.fileName : undefined;
+
+        try {
+            const sessionPath = await importSessionJsonlIntoRuntime({
+                cwd,
+                content,
+                requestedFileName,
+                sessionDirectory: config.sessionDirectory,
+                processManager,
+                awaitRpcEvent,
+            });
+
+            client.send(
+                JSON.stringify(
+                    createBridgeEnvelope({
+                        type: BRIDGE_SESSION_IMPORTED_TYPE,
+                        sessionPath,
+                    }),
+                ),
+            );
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to import session"
+            logger.error({ error, cwd }, "Failed to import JSONL session into active runtime");
+            client.send(
+                JSON.stringify(
+                    createBridgeErrorEnvelope(
+                        "session_import_failed",
+                        message,
                     ),
                 ),
             );
@@ -917,6 +1005,99 @@ function parseTreeNavigationResult(payload: Record<string, unknown>): TreeNaviga
         currentLeafId,
         sessionPath,
     };
+}
+
+async function importSessionJsonlIntoRuntime(options: {
+    cwd: string;
+    content: string;
+    requestedFileName?: string;
+    sessionDirectory: string;
+    processManager: PiProcessManager;
+    awaitRpcEvent: (
+        cwd: string,
+        predicate: (payload: Record<string, unknown>) => boolean,
+        options?: { timeoutMs?: number; consume?: boolean },
+    ) => Promise<Record<string, unknown>>;
+}): Promise<string> {
+    const { cwd, content, requestedFileName, sessionDirectory, processManager, awaitRpcEvent } = options;
+
+    await mkdir(sessionDirectory, { recursive: true });
+
+    const sanitizedFileName = sanitizeImportedSessionFileName(requestedFileName);
+    const sessionPath = await allocateImportedSessionPath(sessionDirectory, sanitizedFileName);
+    await writeFile(sessionPath, content, "utf8");
+
+    const switchRequestId = randomUUID();
+
+    try {
+        const switchResponsePromise = awaitRpcEvent(
+            cwd,
+            (payload) => isRpcResponseForId(payload, switchRequestId),
+            { consume: true },
+        );
+
+        processManager.sendRpc(cwd, {
+            id: switchRequestId,
+            type: "switch_session",
+            sessionPath,
+        });
+
+        const switchResponse = await switchResponsePromise;
+        ensureSuccessfulRpcResponse(switchResponse, "switch_session");
+
+        const responseData = asRecord(switchResponse.data);
+        if (responseData?.cancelled === true) {
+            throw new Error("Session import was cancelled");
+        }
+
+        return sessionPath;
+    } catch (error) {
+        await unlink(sessionPath).catch(() => undefined);
+        throw error;
+    }
+}
+
+async function allocateImportedSessionPath(
+    sessionDirectory: string,
+    fileName: string,
+): Promise<string> {
+    const extension = path.extname(fileName) || ".jsonl";
+    const baseName = path.basename(fileName, extension);
+    let suffix = 0;
+
+    while (true) {
+        const candidateFileName = suffix === 0 ? `${baseName}${extension}` : `${baseName}-${suffix}${extension}`;
+        const candidatePath = path.join(sessionDirectory, candidateFileName);
+
+        if (!(await pathExists(candidatePath))) {
+            return candidatePath;
+        }
+
+        suffix += 1;
+    }
+}
+
+function sanitizeImportedSessionFileName(fileNameRaw: string | undefined): string {
+    const fallback = `imported-session-${Date.now()}.jsonl`;
+    const trimmed = fileNameRaw?.trim();
+    const baseName = trimmed ? path.basename(trimmed) : fallback;
+    const normalized = baseName.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+    const safeName = normalized || fallback;
+
+    if (safeName.endsWith(".jsonl")) {
+        return safeName;
+    }
+
+    return `${safeName}.jsonl`;
+}
+
+async function pathExists(targetPath: string): Promise<boolean> {
+    try {
+        await access(targetPath);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 function ensureSuccessfulRpcResponse(payload: Record<string, unknown>, expectedCommand: string): void {

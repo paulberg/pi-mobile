@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 import { WebSocket, type ClientOptions, type RawData } from "ws";
@@ -13,13 +16,31 @@ import type {
 } from "../src/process-manager.js";
 import type { PiRpcForwarder } from "../src/rpc-forwarder.js";
 import type { BridgeServer } from "../src/server.js";
-import { createBridgeServer } from "../src/server.js";
+import { buildPiRpcArgs, createBridgeServer } from "../src/server.js";
 import type {
     SessionFreshnessSnapshot,
     SessionIndexGroup,
     SessionIndexer,
     SessionTreeSnapshot,
 } from "../src/session-indexer.js";
+
+describe("buildPiRpcArgs", () => {
+    it("passes the configured session directory to pi", () => {
+        const bridgeDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+        const args = buildPiRpcArgs("/tmp/custom-sessions");
+
+        expect(args).toEqual([
+            "--mode",
+            "rpc",
+            "--session-dir",
+            "/tmp/custom-sessions",
+            "--extension",
+            path.resolve(bridgeDir, "src/extensions/pi-mobile-tree.ts"),
+            "--extension",
+            path.resolve(bridgeDir, "src/extensions/pi-mobile-workflows.ts"),
+        ]);
+    });
+});
 
 describe("bridge websocket server", () => {
     let bridgeServer: BridgeServer | undefined;
@@ -1191,6 +1212,87 @@ describe("bridge websocket server", () => {
         });
 
         wsReconnected.close();
+    });
+
+    it("imports JSONL session content into the active runtime session directory", async () => {
+        const fakeProcessManager = new FakeProcessManager();
+        const sessionDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "pi-mobile-import-"));
+        const logger = createLogger("silent");
+        const server = createBridgeServer(
+            {
+                host: "127.0.0.1",
+                port: 0,
+                logLevel: "silent",
+                authToken: "bridge-token",
+                processIdleTtlMs: 300_000,
+                reconnectGraceMs: 100,
+                sessionDirectory,
+                enableHealthEndpoint: true,
+            },
+            logger,
+            { processManager: fakeProcessManager },
+        );
+        bridgeServer = server;
+
+        const serverInfo = await server.start();
+        const ws = await connectWebSocket(`ws://127.0.0.1:${serverInfo.port}/ws`, {
+            headers: {
+                authorization: "Bearer bridge-token",
+            },
+        });
+        await waitForEnvelope(ws, (envelope) => envelope.payload?.type === "bridge_hello");
+
+        const waitForCwdSet = waitForEnvelope(ws, (envelope) => envelope.payload?.type === "bridge_cwd_set");
+        ws.send(
+            JSON.stringify({
+                channel: "bridge",
+                payload: {
+                    type: "bridge_set_cwd",
+                    cwd: "/tmp/import-project",
+                },
+            }),
+        );
+        await waitForCwdSet;
+
+        const waitForControl = waitForEnvelope(ws, (envelope) => envelope.payload?.type === "bridge_control_acquired");
+        ws.send(
+            JSON.stringify({
+                channel: "bridge",
+                payload: {
+                    type: "bridge_acquire_control",
+                },
+            }),
+        );
+        await waitForControl;
+
+        const importContent = '{"type":"session","id":"header-1","version":3,"cwd":"/tmp/import-project"}\n';
+        const waitForImport = waitForEnvelope(ws, (envelope) => envelope.payload?.type === "bridge_session_imported");
+
+        ws.send(
+            JSON.stringify({
+                channel: "bridge",
+                payload: {
+                    type: "bridge_import_session_jsonl",
+                    fileName: "shared-session.jsonl",
+                    content: importContent,
+                },
+            }),
+        );
+
+        const importEnvelope = await waitForImport;
+        const sessionPath = importEnvelope.payload?.sessionPath;
+        expect(typeof sessionPath).toBe("string");
+        expect(path.dirname(sessionPath as string)).toBe(sessionDirectory);
+        expect(path.basename(sessionPath as string)).toBe("shared-session.jsonl");
+        expect(await fs.readFile(sessionPath as string, "utf8")).toBe(importContent);
+
+        const switchPayload = fakeProcessManager.sentPayloads.at(-1)?.payload;
+        expect(fakeProcessManager.sentPayloads.at(-1)?.cwd).toBe("/tmp/import-project");
+        expect(switchPayload?.type).toBe("switch_session");
+        expect(switchPayload?.sessionPath).toBe(sessionPath);
+
+        ws.close();
+        await fs.rm(sessionDirectory, { recursive: true, force: true });
     });
 
     it("returns 404 when health endpoint is disabled", async () => {
