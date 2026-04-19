@@ -11,6 +11,7 @@ This directory contains human-facing documentation for the Pi Mobile app and bri
 - [Custom Extensions](extensions.md)
 - [Bridge Protocol Reference](bridge-protocol.md)
 - [Testing](testing.md)
+- [systemd Service Setup](systemd.md)
 - [Performance Baseline](perf-baseline.md)
 - [Final Acceptance Report](final-acceptance.md)
 
@@ -24,3 +25,4 @@ This directory contains human-facing documentation for the Pi Mobile app and bri
   4. [Codebase Guide](codebase.md)
   5. [Custom Extensions](extensions.md)
   6. [Bridge Protocol Reference](bridge-protocol.md)
+  7. [systemd Service Setup](systemd.md)
