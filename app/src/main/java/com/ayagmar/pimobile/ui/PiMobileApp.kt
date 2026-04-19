@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
@@ -80,7 +80,7 @@ private val destinations =
         AppDestination(
             route = "chat",
             label = "Chat",
-            icon = Icons.Default.Chat,
+            icon = Icons.AutoMirrored.Filled.Chat,
         ),
         AppDestination(
             route = "settings",

@@ -302,17 +302,17 @@ private fun AssistantCard(
                     color = chatColors.onAssistantContainer,
                 )
 
-                AssistantMessageContent(
-                    text = item.text,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
                 ThinkingBlock(
                     thinking = item.thinking,
                     isThinkingComplete = item.isThinkingComplete,
                     isThinkingExpanded = item.isThinkingExpanded,
                     itemId = item.id,
                     onToggleThinkingExpansion = onToggleThinkingExpansion,
+                )
+
+                AssistantMessageContent(
+                    text = item.text,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
