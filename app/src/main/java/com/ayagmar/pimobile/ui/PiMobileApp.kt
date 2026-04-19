@@ -330,7 +330,6 @@ fun piMobileApp(appGraph: AppGraph) {
                             )
                         }
                     }
-
                 }
             }
         }

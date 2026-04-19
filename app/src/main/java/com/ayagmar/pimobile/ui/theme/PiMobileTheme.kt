@@ -74,9 +74,10 @@ data class ChatColors(
     val codeSurface: Color,
 )
 
-val LocalChatColors = staticCompositionLocalOf<ChatColors> {
-    error("No ChatColors provided – wrap your UI in PiMobileTheme")
-}
+val LocalChatColors =
+    staticCompositionLocalOf<ChatColors> {
+        error("No ChatColors provided – wrap your UI in PiMobileTheme")
+    }
 
 private fun lightChatColors(scheme: androidx.compose.material3.ColorScheme) =
     ChatColors(
@@ -119,63 +120,73 @@ private fun darkChatColors(scheme: androidx.compose.material3.ColorScheme) =
  * messaging UI. We tighten body and label styles to ~1.3–1.35× so messages
  * feel denser without hurting readability.
  */
-private val PiTypography = Typography(
-    // Headings (used in markdown H1-H2, sheet titles)
-    headlineSmall = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,     // default 32
-        letterSpacing = 0.sp,
-    ),
-    titleLarge = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp,
-    ),
-    titleMedium = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,     // default 24
-        letterSpacing = 0.15.sp,
-    ),
-    titleSmall = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 18.sp,     // default 20
-        letterSpacing = 0.1.sp,
-    ),
-    // Body (primary chat text)
-    bodyMedium = TextStyle(
-        fontSize = 14.sp,
-        lineHeight = 19.sp,     // default 20 — slightly tighter
-        letterSpacing = 0.25.sp,
-    ),
-    bodySmall = TextStyle(
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp,
-    ),
-    // Labels (metadata, timestamps, chips)
-    labelLarge = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 18.sp,     // default 20
-        letterSpacing = 0.1.sp,
-    ),
-    labelMedium = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
-    ),
-    labelSmall = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 14.sp,     // default 16
-        letterSpacing = 0.5.sp,
-    ),
-)
+private val PiTypography =
+    Typography(
+        // Headings (used in markdown H1-H2, sheet titles)
+        headlineSmall =
+            TextStyle(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
+                lineHeight = 30.sp,
+                letterSpacing = 0.sp,
+            ),
+        titleLarge =
+            TextStyle(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 22.sp,
+                lineHeight = 28.sp,
+                letterSpacing = 0.sp,
+            ),
+        titleMedium =
+            TextStyle(
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                letterSpacing = 0.15.sp,
+            ),
+        titleSmall =
+            TextStyle(
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                lineHeight = 18.sp,
+                letterSpacing = 0.1.sp,
+            ),
+        // Body (primary chat text)
+        bodyMedium =
+            TextStyle(
+                fontSize = 14.sp,
+                lineHeight = 19.sp,
+                letterSpacing = 0.25.sp,
+            ),
+        bodySmall =
+            TextStyle(
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                letterSpacing = 0.4.sp,
+            ),
+        // Labels (metadata, timestamps, chips)
+        labelLarge =
+            TextStyle(
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                lineHeight = 18.sp,
+                letterSpacing = 0.1.sp,
+            ),
+        labelMedium =
+            TextStyle(
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                letterSpacing = 0.5.sp,
+            ),
+        labelSmall =
+            TextStyle(
+                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                letterSpacing = 0.5.sp,
+            ),
+    )
 
 // ---------------------------------------------------------------------------
 // Theme entry-point

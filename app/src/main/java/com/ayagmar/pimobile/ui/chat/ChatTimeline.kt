@@ -94,9 +94,10 @@ private fun EmptyStateContent(
     errorMessage: String?,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 64.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 64.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -237,13 +238,14 @@ private fun InlineRunProgressCard(
     val chatColors = LocalChatColors.current
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight()
-                .background(
-                    color = chatColors.assistantAccent,
-                    shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
-                ),
+            modifier =
+                Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(
+                        color = chatColors.assistantAccent,
+                        shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                    ),
         )
         Card(
             modifier = Modifier.weight(1f),
@@ -289,62 +291,66 @@ private fun SwipeToReplyWrapper(
         // Reply icon revealed behind the card
         val progress = (offsetX.value / thresholdPx.value).coerceIn(0f, 1f)
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(start = 8.dp),
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .padding(start = 8.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Reply,
                 contentDescription = "Reply",
-                modifier = Modifier
-                    .size(24.dp)
-                    .alpha((progress * SWIPE_REPLY_ICON_ALPHA_SCALE).coerceAtMost(1f)),
+                modifier =
+                    Modifier
+                        .size(24.dp)
+                        .alpha((progress * SWIPE_REPLY_ICON_ALPHA_SCALE).coerceAtMost(1f)),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
 
         // The actual message content, offset horizontally
         Box(
-            modifier = Modifier
-                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragStart = {
-                            hapticFired = false
-                        },
-                        onDragEnd = {
-                            if (offsetX.value >= thresholdPx.toPx()) {
-                                onReply()
-                            }
-                            coroutineScope.launch {
-                                offsetX.animateTo(
-                                    0f,
-                                    animationSpec = tween(SWIPE_REPLY_SNAP_BACK_MS),
-                                )
-                            }
-                        },
-                        onDragCancel = {
-                            coroutineScope.launch {
-                                offsetX.animateTo(
-                                    0f,
-                                    animationSpec = tween(SWIPE_REPLY_SNAP_BACK_MS),
-                                )
-                            }
-                        },
-                        onHorizontalDrag = { _, dragAmount ->
-                            coroutineScope.launch {
-                                val newValue = (offsetX.value + dragAmount)
-                                    .coerceIn(0f, maxPx.toPx())
-                                offsetX.snapTo(newValue)
-                                if (newValue >= thresholdPx.toPx() && !hapticFired) {
-                                    hapticFired = true
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            modifier =
+                Modifier
+                    .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onDragStart = {
+                                hapticFired = false
+                            },
+                            onDragEnd = {
+                                if (offsetX.value >= thresholdPx.toPx()) {
+                                    onReply()
                                 }
-                            }
-                        },
-                    )
-                },
+                                coroutineScope.launch {
+                                    offsetX.animateTo(
+                                        0f,
+                                        animationSpec = tween(SWIPE_REPLY_SNAP_BACK_MS),
+                                    )
+                                }
+                            },
+                            onDragCancel = {
+                                coroutineScope.launch {
+                                    offsetX.animateTo(
+                                        0f,
+                                        animationSpec = tween(SWIPE_REPLY_SNAP_BACK_MS),
+                                    )
+                                }
+                            },
+                            onHorizontalDrag = { _, dragAmount ->
+                                coroutineScope.launch {
+                                    val newValue =
+                                        (offsetX.value + dragAmount)
+                                            .coerceIn(0f, maxPx.toPx())
+                                    offsetX.snapTo(newValue)
+                                    if (newValue >= thresholdPx.toPx() && !hapticFired) {
+                                        hapticFired = true
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                }
+                            },
+                        )
+                    },
         ) {
             content()
         }
@@ -707,9 +713,10 @@ private fun ChatTimelineList(
             val isAssistant = item is ChatTimelineItem.Assistant
             if (isAssistant) {
                 val assistantItem = item as ChatTimelineItem.Assistant
-                val quoteSnippet = remember(assistantItem.text) {
-                    buildQuoteSnippet(assistantItem.text)
-                }
+                val quoteSnippet =
+                    remember(assistantItem.text) {
+                        buildQuoteSnippet(assistantItem.text)
+                    }
                 SwipeToReplyWrapper(
                     onReply = { onQuoteReply(quoteSnippet) },
                 ) {
@@ -788,14 +795,16 @@ private fun ImagePreviewDialog(
 }
 
 private fun buildQuoteSnippet(text: String): String {
-    val firstLine = text.lineSequence()
-        .map { it.trim() }
-        .firstOrNull { it.isNotEmpty() }
-        ?: return ""
-    val snippet = if (firstLine.length > SWIPE_REPLY_QUOTE_MAX_LENGTH) {
-        firstLine.take(SWIPE_REPLY_QUOTE_MAX_LENGTH) + "..."
-    } else {
-        firstLine
-    }
+    val firstLine =
+        text.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() }
+            ?: return ""
+    val snippet =
+        if (firstLine.length > SWIPE_REPLY_QUOTE_MAX_LENGTH) {
+            firstLine.take(SWIPE_REPLY_QUOTE_MAX_LENGTH) + "..."
+        } else {
+            firstLine
+        }
     return "> $snippet"
 }

@@ -31,12 +31,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ayagmar.pimobile.R
 import com.ayagmar.pimobile.chat.EditDiffInfo
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import com.github.difflib.DiffUtils
 import com.github.difflib.patch.AbstractDelta
 import com.github.difflib.patch.DeltaType
@@ -388,12 +388,13 @@ private fun buildHighlightedDiffLine(
 
     val content = line.content
     val baseStyle = SpanStyle(color = baseContentColor, fontFamily = PiCodeFontFamily)
-    val syntaxColors = SyntaxHighlightColors(
-        comment = colors.commentText,
-        string = colors.stringText,
-        number = colors.numberText,
-        keyword = colors.keywordText,
-    )
+    val syntaxColors =
+        SyntaxHighlightColors(
+            comment = colors.commentText,
+            string = colors.stringText,
+            number = colors.numberText,
+            keyword = colors.keywordText,
+        )
 
     return buildAnnotatedString {
         append(prefix)

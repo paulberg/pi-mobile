@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -63,7 +61,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.unit.dp
 import com.ayagmar.pimobile.chat.ChatViewModel
 import com.ayagmar.pimobile.corerpc.AvailableModel
@@ -71,6 +68,7 @@ import com.ayagmar.pimobile.corerpc.SessionStats
 import com.ayagmar.pimobile.sessions.ModelInfo
 import com.ayagmar.pimobile.sessions.SessionTreeEntry
 import com.ayagmar.pimobile.sessions.SessionTreeSnapshot
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 
 private const val MODEL_PICKER_SCROLL_OFFSET_ITEMS = 1
 private const val SESSION_PATH_DISPLAY_LENGTH = 40
@@ -114,11 +112,12 @@ internal fun BashDialog(
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -185,12 +184,14 @@ internal fun BashDialog(
 
             // Output display
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 150.dp, max = 300.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 150.dp, max = 300.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -225,10 +226,11 @@ internal fun BashDialog(
                             text = output.ifEmpty { "(no output)" },
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = PiCodeFontFamily,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .verticalScroll(rememberScrollState()),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState()),
                         )
                     }
                 }
@@ -278,9 +280,10 @@ internal fun BashDialog(
                 if (isExecuting) {
                     Button(
                         onClick = onAbort,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                        ),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                            ),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Stop,
@@ -333,11 +336,12 @@ internal fun SessionStatsSheet(
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
@@ -454,11 +458,12 @@ private fun StatsSection(
     content: @Composable () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(12.dp),
     ) {
         Text(
             text = title,
@@ -577,11 +582,12 @@ internal fun ModelPickerSheet(
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp)
+                    .navigationBarsPadding(),
         ) {
             // Header
             Text(
@@ -620,9 +626,10 @@ internal fun ModelPickerSheet(
             } else {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp),
                 ) {
                     groupedModels.forEach { (provider, modelsInGroup) ->
                         item {
@@ -660,10 +667,11 @@ private fun ModelItem(
     onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable { onClick() },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clickable { onClick() },
         colors =
             if (isSelected) {
                 CardDefaults.cardColors(
@@ -758,11 +766,12 @@ internal fun TreeNavigationSheet(
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp)
+                    .navigationBarsPadding(),
         ) {
             // Header
             Text(
@@ -825,9 +834,10 @@ internal fun TreeNavigationSheet(
                 else -> {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 400.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 400.dp),
                     ) {
                         items(
                             items = entries,
@@ -875,9 +885,10 @@ private fun TreeEntryRow(
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(start = indent),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = containerColor,
+            ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
@@ -953,19 +964,21 @@ private fun TreeEntryRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
                     TextButton(
                         onClick = { onJumpAndContinue(entry.entryId) },
-                        contentPadding = PaddingValues(
-                            horizontal = 8.dp,
-                            vertical = 0.dp,
-                        ),
+                        contentPadding =
+                            PaddingValues(
+                                horizontal = 8.dp,
+                                vertical = 0.dp,
+                            ),
                     ) {
                         Text("Jump", style = MaterialTheme.typography.labelSmall)
                     }
                     TextButton(
                         onClick = { onForkFromEntry(entry.entryId) },
-                        contentPadding = PaddingValues(
-                            horizontal = 8.dp,
-                            vertical = 0.dp,
-                        ),
+                        contentPadding =
+                            PaddingValues(
+                                horizontal = 8.dp,
+                                vertical = 0.dp,
+                            ),
                     ) {
                         Text("Fork", style = MaterialTheme.typography.labelSmall)
                     }

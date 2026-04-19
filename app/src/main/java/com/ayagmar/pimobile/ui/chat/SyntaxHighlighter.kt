@@ -2,8 +2,8 @@
 
 package com.ayagmar.pimobile.ui.chat
 
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
 import io.noties.prism4j.AbsVisitor
 import io.noties.prism4j.Prism4j
 import java.security.MessageDigest
@@ -285,7 +285,7 @@ private val CODE_FENCE_TAG_MAP =
         "md" to SyntaxLanguage.MARKDOWN,
         "makefile" to SyntaxLanguage.MAKEFILE,
         "make" to SyntaxLanguage.MAKEFILE,
-        "bash" to SyntaxLanguage.PLAIN, // no bash grammar in Prism4j bundle
+        "bash" to SyntaxLanguage.PLAIN,
         "shell" to SyntaxLanguage.PLAIN,
         "sh" to SyntaxLanguage.PLAIN,
         "rust" to SyntaxLanguage.PLAIN,

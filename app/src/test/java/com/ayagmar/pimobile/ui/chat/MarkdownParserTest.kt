@@ -92,19 +92,20 @@ class MarkdownParserTest {
 
     @Test
     fun mixedBlockTypes() {
-        val md = """
+        val md =
+            """
             # Title
-            
+
             Some intro text.
-            
+
             - bullet one
             - bullet two
-            
+
             > A quote
-            
+
             1. step one
             2. step two
-        """.trimIndent()
+            """.trimIndent()
         val blocks = parseMarkdownBlocks(md)
         assertTrue(blocks[0] is MarkdownBlock.HeaderBlock)
         assertTrue(blocks[1] is MarkdownBlock.ParagraphBlock)
@@ -117,14 +118,15 @@ class MarkdownParserTest {
 
     // ── Inline parsing ──────────────────────────────────────────────────────
 
-    private val testColors = MarkdownColors(
-        text = Color.White,
-        code = Color.Blue,
-        codeBackground = Color.DarkGray,
-        link = Color.Cyan,
-        blockquoteBorder = Color.Gray,
-        blockquoteText = Color.LightGray,
-    )
+    private val testColors =
+        MarkdownColors(
+            text = Color.White,
+            code = Color.Blue,
+            codeBackground = Color.DarkGray,
+            link = Color.Cyan,
+            blockquoteBorder = Color.Gray,
+            blockquoteText = Color.LightGray,
+        )
 
     @Test
     fun inlineBoldParsesCorrectly() {

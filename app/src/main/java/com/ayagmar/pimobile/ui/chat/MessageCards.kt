@@ -1,7 +1,6 @@
 package com.ayagmar.pimobile.ui.chat
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,7 +22,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
@@ -64,11 +61,11 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import com.ayagmar.pimobile.ui.theme.LocalChatColors
-import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ayagmar.pimobile.chat.ChatTimelineItem
+import com.ayagmar.pimobile.ui.theme.LocalChatColors
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 
 private const val COLLAPSED_OUTPUT_LENGTH = 280
 private const val COLLAPSED_HEAD_LINES = 3
@@ -275,13 +272,14 @@ private fun AssistantCard(
     val chatColors = LocalChatColors.current
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight()
-                .background(
-                    color = chatColors.assistantAccent,
-                    shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
-                ),
+            modifier =
+                Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(
+                        color = chatColors.assistantAccent,
+                        shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                    ),
         )
         Card(
             modifier = Modifier.weight(1f),
@@ -389,17 +387,19 @@ private fun AssistantCodeBlock(
     val syntaxLanguage = remember(language) { codeFenceLanguageToSyntax(language) }
     val text = code.ifBlank { "(empty code block)" }
     val colors = MaterialTheme.colorScheme
-    val syntaxColors = remember(colors) {
-        SyntaxHighlightColors(
-            comment = colors.outline,
-            string = colors.tertiary,
-            number = colors.secondary,
-            keyword = colors.primary,
-        )
-    }
-    val spans = remember(text, syntaxLanguage) {
-        PrismHighlighter.highlight(content = text, language = syntaxLanguage)
-    }
+    val syntaxColors =
+        remember(colors) {
+            SyntaxHighlightColors(
+                comment = colors.outline,
+                string = colors.tertiary,
+                number = colors.secondary,
+                keyword = colors.primary,
+            )
+        }
+    val spans =
+        remember(text, syntaxLanguage) {
+            PrismHighlighter.highlight(content = text, language = syntaxLanguage)
+        }
     val lines = remember(text) { text.lines() }
     val showLineNumbers = lines.size >= LINE_NUMBER_THRESHOLD
     val gutterWidth = if (showLineNumbers) (lines.size.toString().length * 8 + 12).dp else 0.dp
@@ -415,10 +415,11 @@ private fun AssistantCodeBlock(
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header row: language chip + copy button
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surfaceVariant)
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(colors.surfaceVariant)
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -529,7 +530,6 @@ private fun parseAssistantMessageBlocks(text: String): List<AssistantMessageBloc
     return blocks
 }
 
-
 @Suppress("LongMethod")
 @Composable
 private fun ThinkingBlock(
@@ -551,39 +551,44 @@ private fun ThinkingBlock(
 
     val chatColors = LocalChatColors.current
     val borderColor = chatColors.thinkingBorder
-    val dashEffect = remember {
-        PathEffect.dashPathEffect(
-            floatArrayOf(THINKING_DASH_INTERVAL_PX, THINKING_DASH_INTERVAL_PX),
-            THINKING_DASH_PHASE_PX,
-        )
-    }
+    val dashEffect =
+        remember {
+            PathEffect.dashPathEffect(
+                floatArrayOf(THINKING_DASH_INTERVAL_PX, THINKING_DASH_INTERVAL_PX),
+                THINKING_DASH_PHASE_PX,
+            )
+        }
 
-    val wordCount = remember(thinking) {
-        thinking.split(Regex("\\s+")).count { it.isNotEmpty() }
-    }
+    val wordCount =
+        remember(thinking) {
+            thinking.split(Regex("\\s+")).count { it.isNotEmpty() }
+        }
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .drawBehind {
-                drawRoundRect(
-                    color = borderColor,
-                    size = Size(size.width, size.height),
-                    cornerRadius = CornerRadius(THINKING_BORDER_RADIUS_PX, THINKING_BORDER_RADIUS_PX),
-                    style = Stroke(
-                        width = THINKING_BORDER_WIDTH_PX,
-                        pathEffect = dashEffect,
-                    ),
-                )
-            },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    drawRoundRect(
+                        color = borderColor,
+                        size = Size(size.width, size.height),
+                        cornerRadius = CornerRadius(THINKING_BORDER_RADIUS_PX, THINKING_BORDER_RADIUS_PX),
+                        style =
+                            Stroke(
+                                width = THINKING_BORDER_WIDTH_PX,
+                                pathEffect = dashEffect,
+                            ),
+                    )
+                },
         shape = RoundedCornerShape(12.dp),
         color = chatColors.thinkingContainer,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-                .animateContentSize(animationSpec = tween(THINKING_EXPAND_ANIM_MS)),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .animateContentSize(animationSpec = tween(THINKING_EXPAND_ANIM_MS)),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
@@ -732,10 +737,11 @@ private fun ToolCard(
             // Linear progress bar for streaming tools
             if (item.isStreaming) {
                 LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .height(2.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                            .height(2.dp),
                 )
             }
         }
@@ -750,9 +756,10 @@ private fun ToolOutputContent(
 ) {
     val outputLines = remember(item.output) { item.output.lines() }
     val totalLines = outputLines.size
-    val useSmartTruncation = item.isCollapsed &&
-        totalLines >= SMART_TRUNCATION_MIN_LINES &&
-        item.output.length > COLLAPSED_OUTPUT_LENGTH
+    val useSmartTruncation =
+        item.isCollapsed &&
+            totalLines >= SMART_TRUNCATION_MIN_LINES &&
+            item.output.length > COLLAPSED_OUTPUT_LENGTH
 
     if (useSmartTruncation) {
         // Smart truncation: show head + ... + tail
@@ -791,11 +798,12 @@ private fun ToolOutputContent(
             }
         }
     } else {
-        val displayOutput = if (item.isCollapsed && item.output.length > COLLAPSED_OUTPUT_LENGTH) {
-            item.output.take(COLLAPSED_OUTPUT_LENGTH) + "\u2026"
-        } else {
-            item.output
-        }
+        val displayOutput =
+            if (item.isCollapsed && item.output.length > COLLAPSED_OUTPUT_LENGTH) {
+                item.output.take(COLLAPSED_OUTPUT_LENGTH) + "\u2026"
+            } else {
+                item.output
+            }
         val rawOutput = displayOutput.ifBlank { "(no output yet)" }
 
         SelectionContainer {
@@ -827,15 +835,17 @@ private fun ToolOutputText(
 
     if (shouldHighlight) {
         val inferredLanguage = inferLanguageFromToolContext(item)
-        val syntaxColors = SyntaxHighlightColors(
-            comment = MaterialTheme.colorScheme.outline,
-            string = MaterialTheme.colorScheme.tertiary,
-            number = MaterialTheme.colorScheme.secondary,
-            keyword = MaterialTheme.colorScheme.primary,
-        )
-        val spans = remember(text, inferredLanguage) {
-            PrismHighlighter.highlight(content = text, language = inferredLanguage)
-        }
+        val syntaxColors =
+            SyntaxHighlightColors(
+                comment = MaterialTheme.colorScheme.outline,
+                string = MaterialTheme.colorScheme.tertiary,
+                number = MaterialTheme.colorScheme.secondary,
+                keyword = MaterialTheme.colorScheme.primary,
+            )
+        val spans =
+            remember(text, inferredLanguage) {
+                PrismHighlighter.highlight(content = text, language = inferredLanguage)
+            }
         Text(
             text = buildPrismHighlightedString(text, spans, MaterialTheme.colorScheme.onSurface, syntaxColors),
             style = MaterialTheme.typography.bodyMedium,

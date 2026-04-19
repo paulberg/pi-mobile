@@ -18,15 +18,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.ayagmar.pimobile.ui.theme.PiCodeFontFamily
 
-/**
+/*
  * Lightweight markdown renderer for assistant message paragraphs.
  *
  * Handles block-level elements (headers, lists, blockquotes, horizontal rules)
@@ -77,10 +76,15 @@ private val HORIZONTAL_RULE_REGEX = Regex("^\\s*([-*_])\\s*\\1\\s*\\1+\\s*$")
 
 internal sealed interface MarkdownBlock {
     data class HeaderBlock(val level: Int, val content: String) : MarkdownBlock
+
     data class ParagraphBlock(val content: String) : MarkdownBlock
+
     data class UnorderedListItemBlock(val indent: Int, val content: String) : MarkdownBlock
+
     data class OrderedListItemBlock(val indent: Int, val number: String, val content: String) : MarkdownBlock
+
     data class BlockquoteBlock(val content: String) : MarkdownBlock
+
     data object HorizontalRuleBlock : MarkdownBlock
 }
 
@@ -99,14 +103,15 @@ internal fun MarkdownText(
     baseColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     val blocks = remember(text) { parseMarkdownBlocks(text) }
-    val colors = MarkdownColors(
-        text = baseColor,
-        code = MaterialTheme.colorScheme.primary,
-        codeBackground = MaterialTheme.colorScheme.surfaceVariant,
-        link = MaterialTheme.colorScheme.primary,
-        blockquoteBorder = MaterialTheme.colorScheme.outlineVariant,
-        blockquoteText = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    val colors =
+        MarkdownColors(
+            text = baseColor,
+            code = MaterialTheme.colorScheme.primary,
+            codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+            link = MaterialTheme.colorScheme.primary,
+            blockquoteBorder = MaterialTheme.colorScheme.outlineVariant,
+            blockquoteText = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -189,7 +194,9 @@ internal fun parseInlineMarkdown(
 
             when (match.type) {
                 InlineMatchType.BOLD_ITALIC -> {
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic, color = colors.text)) {
+                    withStyle(
+                        SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic, color = colors.text),
+                    ) {
                         append(match.content)
                     }
                 }
@@ -256,13 +263,14 @@ private fun MarkdownHeader(
     content: String,
     colors: MarkdownColors,
 ) {
-    val style = when (level) {
-        1 -> MaterialTheme.typography.headlineSmall
-        2 -> MaterialTheme.typography.titleLarge
-        3 -> MaterialTheme.typography.titleMedium
-        4 -> MaterialTheme.typography.titleSmall
-        else -> MaterialTheme.typography.labelLarge
-    }
+    val style =
+        when (level) {
+            1 -> MaterialTheme.typography.headlineSmall
+            2 -> MaterialTheme.typography.titleLarge
+            3 -> MaterialTheme.typography.titleMedium
+            4 -> MaterialTheme.typography.titleSmall
+            else -> MaterialTheme.typography.labelLarge
+        }
 
     Text(
         text = parseInlineMarkdown(content, colors),
@@ -277,11 +285,12 @@ private fun MarkdownUnorderedListItem(
     content: String,
     colors: MarkdownColors,
 ) {
-    val bullet = when (indent) {
-        0 -> "•"
-        1 -> "◦"
-        else -> "▪"
-    }
+    val bullet =
+        when (indent) {
+            0 -> "•"
+            1 -> "◦"
+            else -> "▪"
+        }
     Row(
         modifier = Modifier.padding(start = (indent * 16).dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -331,30 +340,33 @@ private fun MarkdownBlockquote(
     colors: MarkdownColors,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = colors.blockquoteBorder.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(4.dp),
-            )
-            .padding(start = 2.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    color = colors.blockquoteBorder.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(4.dp),
+                )
+                .padding(start = 2.dp),
     ) {
         // Vertical accent bar
         @Suppress("MagicNumber")
         androidx.compose.foundation.layout.Box(
-            modifier = Modifier
-                .width(3.dp)
-                .padding(vertical = 4.dp)
-                .background(
-                    color = colors.blockquoteBorder,
-                    shape = RoundedCornerShape(2.dp),
-                ),
+            modifier =
+                Modifier
+                    .width(3.dp)
+                    .padding(vertical = 4.dp)
+                    .background(
+                        color = colors.blockquoteBorder,
+                        shape = RoundedCornerShape(2.dp),
+                    ),
         )
         Text(
             text = parseInlineMarkdown(content, colors),
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontStyle = FontStyle.Italic,
-            ),
+            style =
+                MaterialTheme.typography.bodyMedium.copy(
+                    fontStyle = FontStyle.Italic,
+                ),
             color = colors.blockquoteText,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
@@ -446,11 +458,12 @@ internal fun parseMarkdownBlocks(text: String): List<MarkdownBlock> {
         if (olMatch != null) {
             flushParagraph()
             val indent = olMatch.groupValues[1].length / 2
-            blocks += MarkdownBlock.OrderedListItemBlock(
-                indent = indent,
-                number = olMatch.groupValues[2],
-                content = olMatch.groupValues[3],
-            )
+            blocks +=
+                MarkdownBlock.OrderedListItemBlock(
+                    indent = indent,
+                    number = olMatch.groupValues[2],
+                    content = olMatch.groupValues[3],
+                )
             continue
         }
 
@@ -483,59 +496,65 @@ private fun collectInlineMatches(text: String): List<InlineMatch> {
 
     // Inline code (highest priority — contents are literal)
     INLINE_CODE_REGEX.findAll(text).forEach { match ->
-        candidates += InlineMatch(
-            range = match.range,
-            content = match.groupValues[1],
-            type = InlineMatchType.INLINE_CODE,
-        )
+        candidates +=
+            InlineMatch(
+                range = match.range,
+                content = match.groupValues[1],
+                type = InlineMatchType.INLINE_CODE,
+            )
     }
 
     // Bold-italic
     BOLD_ITALIC_REGEX.findAll(text).forEach { match ->
         val content = match.groupValues[1].ifEmpty { match.groupValues[2] }
-        candidates += InlineMatch(
-            range = match.range,
-            content = content,
-            type = InlineMatchType.BOLD_ITALIC,
-        )
+        candidates +=
+            InlineMatch(
+                range = match.range,
+                content = content,
+                type = InlineMatchType.BOLD_ITALIC,
+            )
     }
 
     // Bold
     BOLD_REGEX.findAll(text).forEach { match ->
         val content = match.groupValues[1].ifEmpty { match.groupValues[2] }
-        candidates += InlineMatch(
-            range = match.range,
-            content = content,
-            type = InlineMatchType.BOLD,
-        )
+        candidates +=
+            InlineMatch(
+                range = match.range,
+                content = content,
+                type = InlineMatchType.BOLD,
+            )
     }
 
     // Italic
     ITALIC_REGEX.findAll(text).forEach { match ->
         val content = match.groupValues[1].ifEmpty { match.groupValues[2] }
-        candidates += InlineMatch(
-            range = match.range,
-            content = content,
-            type = InlineMatchType.ITALIC,
-        )
+        candidates +=
+            InlineMatch(
+                range = match.range,
+                content = content,
+                type = InlineMatchType.ITALIC,
+            )
     }
 
     // Strikethrough
     STRIKETHROUGH_REGEX.findAll(text).forEach { match ->
-        candidates += InlineMatch(
-            range = match.range,
-            content = match.groupValues[1],
-            type = InlineMatchType.STRIKETHROUGH,
-        )
+        candidates +=
+            InlineMatch(
+                range = match.range,
+                content = match.groupValues[1],
+                type = InlineMatchType.STRIKETHROUGH,
+            )
     }
 
     // Links
     LINK_REGEX.findAll(text).forEach { match ->
-        candidates += InlineMatch(
-            range = match.range,
-            content = match.groupValues[1], // display text only
-            type = InlineMatchType.LINK,
-        )
+        candidates +=
+            InlineMatch(
+                range = match.range,
+                content = match.groupValues[1],
+                type = InlineMatchType.LINK,
+            )
     }
 
     // Sort by start position, then resolve overlaps (first match wins)
