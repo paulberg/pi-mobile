@@ -316,6 +316,8 @@ internal fun BashDialog(
 internal fun SessionStatsSheet(
     isVisible: Boolean,
     stats: SessionStats?,
+    sessionName: String?,
+    pendingMessageCount: Int,
     isLoading: Boolean,
     onRefresh: () -> Unit,
     onDismiss: () -> Unit,
@@ -373,6 +375,15 @@ internal fun SessionStatsSheet(
                     modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    if (sessionName != null || pendingMessageCount > 0) {
+                        StatsSection(title = "Session") {
+                            sessionName?.let { StatRow("Name", it) }
+                            if (pendingMessageCount > 0) {
+                                StatRow("Queued Messages", pendingMessageCount.toString())
+                            }
+                        }
+                    }
+
                     // Token stats
                     StatsSection(title = "Tokens") {
                         StatRow("Input Tokens", formatNumber(stats.inputTokens))

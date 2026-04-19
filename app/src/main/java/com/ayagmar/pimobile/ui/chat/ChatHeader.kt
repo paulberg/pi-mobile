@@ -85,6 +85,8 @@ internal fun ChatHeader(
     isSyncingSession: Boolean,
     sessionCoherencyWarning: String?,
     extensionTitle: String?,
+    sessionName: String?,
+    pendingMessageCount: Int,
     connectionState: ConnectionState,
     currentModel: ModelInfo?,
     thinkingLevel: String?,
@@ -111,7 +113,7 @@ internal fun ChatHeader(
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                val title = extensionTitle ?: "Chat"
+                val title = extensionTitle ?: sessionName ?: "Chat"
                 Text(
                     text = title,
                     style =
@@ -122,21 +124,16 @@ internal fun ChatHeader(
                         },
                 )
 
-                // Subtle connection status
                 if (!isCompact && extensionTitle == null) {
-                    val statusText =
-                        when (connectionState) {
-                            ConnectionState.CONNECTED -> "●"
-                            ConnectionState.CONNECTING -> "○"
-                            else -> "○"
-                        }
                     Text(
-                        text = statusText,
+                        text = formatConnectionSummary(connectionState, pendingMessageCount),
                         style = MaterialTheme.typography.bodySmall,
                         color =
                             when (connectionState) {
-                                ConnectionState.CONNECTED ->
-                                    MaterialTheme.colorScheme.primary
+                                ConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary
+                                ConnectionState.CONNECTING,
+                                ConnectionState.RECONNECTING,
+                                -> MaterialTheme.colorScheme.tertiary
                                 else -> MaterialTheme.colorScheme.outline
                             },
                     )
@@ -192,6 +189,13 @@ internal fun ChatHeader(
                         onClick = {
                             showSecondaryActionsMenu = false
                             callbacks.onShowStatsSheet()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Copy last response") },
+                        onClick = {
+                            showSecondaryActionsMenu = false
+                            callbacks.onCopyLastResponse()
                         },
                     )
                     DropdownMenuItem(
@@ -643,6 +647,30 @@ private fun formatCompactCost(value: Double): String {
             else -> "$%.4f"
         }
     return String.format(java.util.Locale.US, pattern, value)
+}
+
+private fun formatConnectionSummary(
+    connectionState: ConnectionState,
+    pendingMessageCount: Int,
+): String {
+    val statusLabel =
+        when (connectionState) {
+            ConnectionState.CONNECTED -> "Connected"
+            ConnectionState.CONNECTING -> "Connecting"
+            ConnectionState.RECONNECTING -> "Reconnecting"
+            ConnectionState.DISCONNECTED -> "Disconnected"
+        }
+
+    if (pendingMessageCount <= 0) {
+        return statusLabel
+    }
+
+    return "$statusLabel • ${formatQueuedMessagesLabel(pendingMessageCount)}"
+}
+
+private fun formatQueuedMessagesLabel(pendingMessageCount: Int): String {
+    val suffix = if (pendingMessageCount == 1) "msg" else "msgs"
+    return "Queued $pendingMessageCount $suffix"
 }
 
 internal fun buildExtensionStatusPresentation(

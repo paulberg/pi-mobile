@@ -333,6 +333,8 @@ private fun ChatScreen(
     SessionStatsSheet(
         isVisible = state.isStatsSheetVisible,
         stats = state.sessionStats,
+        sessionName = state.sessionName,
+        pendingMessageCount = state.pendingMessageCount,
         isLoading = state.isLoadingStats,
         onRefresh = callbacks.onRefreshStats,
         onDismiss = callbacks.onHideStatsSheet,
@@ -446,6 +448,8 @@ private fun ChatScreenContent(
                 isSyncingSession = state.isSyncingSession,
                 sessionCoherencyWarning = state.sessionCoherencyWarning,
                 extensionTitle = state.extensionTitle,
+                sessionName = state.sessionName,
+                pendingMessageCount = state.pendingMessageCount,
                 connectionState = state.connectionState,
                 currentModel = state.currentModel,
                 thinkingLevel = state.thinkingLevel,
