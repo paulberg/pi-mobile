@@ -75,11 +75,14 @@ Clone and start the bridge:
 git clone https://github.com/yourusername/pi-mobile.git
 cd pi-mobile/bridge
 pnpm install
-# create .env and set BRIDGE_AUTH_TOKEN (see Configuration section below)
+cp .env.example .env
+# edit .env and set BRIDGE_AUTH_TOKEN (see Configuration section below)
 pnpm start
 ```
 
 The bridge binds to `127.0.0.1:8787` by default. Set `BRIDGE_HOST` to your laptop Tailscale IP to allow phone access (avoid `0.0.0.0` unless you enforce firewall restrictions). It spawns pi processes on demand per working directory.
+
+For a boot-persistent service with restart policy and Tailscale host auto-detection, see [docs/systemd.md](docs/systemd.md).
 
 ### 2. Phone Setup
 
@@ -227,10 +230,10 @@ pnpm start 2>&1 | tee bridge.log
 
 ### Bridge Environment Variables
 
-Create `bridge/.env`:
+Create `bridge/.env` (or start from `bridge/.env.example`):
 
 ```env
-BRIDGE_HOST=0.0.0.0                 # Bind host (default: 127.0.0.1)
+# BRIDGE_HOST=100.x.y.z             # Bind host (default: 127.0.0.1)
 BRIDGE_PORT=8787                    # Port to listen on
 BRIDGE_AUTH_TOKEN=your-secret       # Required authentication token
 BRIDGE_PROCESS_IDLE_TTL_MS=300000   # Idle process eviction window (ms)
@@ -239,6 +242,8 @@ BRIDGE_SESSION_DIR=/absolute/path/to/.pi/agent/sessions  # Override the session 
 BRIDGE_LOG_LEVEL=info               # fatal,error,warn,info,debug,trace,silent
 BRIDGE_ENABLE_HEALTH_ENDPOINT=true  # set false to disable /health endpoint
 ```
+
+For systemd deployment, use `ops/systemd/pi-mobile-bridge@.service` and `ops/systemd/pi-mobile-bridge.env.example` as the starting point.
 
 ### App Build Variants
 

@@ -54,6 +54,7 @@ The app never talks directly to a pi process. It talks to the bridge, which:
 | `benchmark/` | Android macrobenchmark module and baseline-profile scaffolding |
 | `docs/` | Human-facing project docs |
 | `docs/ai/` | Planning/progress artifacts |
+| `ops/systemd/` | systemd unit/env templates for the bridge |
 
 ## Module Responsibilities
 
