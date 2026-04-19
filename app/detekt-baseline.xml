@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ChatScreen.kt$@Composable private fun rememberHeaderControlsVisible( listState: LazyListState, isRunActive: Boolean, isTimelineEmpty: Boolean, ): Boolean</ID>
+    <ID>CyclomaticComplexMethod:ChatScreen.kt$@Suppress("LongMethod") @Composable private fun ChatScreenContent( state: ChatUiState, callbacks: ChatCallbacks, showExtensionStatusStrip: Boolean, onOpenDrawer: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:MarkdownText.kt$internal fun parseMarkdownBlocks(text: String): List&lt;MarkdownBlock&gt;</ID>
+    <ID>LongMethod:ChatScreen.kt$@Composable private fun rememberHeaderControlsVisible( listState: LazyListState, isRunActive: Boolean, isTimelineEmpty: Boolean, ): Boolean</ID>
+    <ID>LongMethod:ChatTimeline.kt$@Composable private fun EmptyStateContent( connectionState: ConnectionState, currentModelName: String?, errorMessage: String?, )</ID>
+    <ID>LongMethod:ChatTimeline.kt$@Suppress("LongParameterList") @Composable private fun ChatTimelineList( listState: LazyListState, timeline: List&lt;ChatTimelineItem&gt;, hasOlderMessages: Boolean, hiddenHistoryCount: Int, expandedToolArguments: Set&lt;String&gt;, showInlineRunProgress: Boolean, runPhase: LiveRunPhase, runElapsedSeconds: Long, onLoadOlderMessages: () -&gt; Unit, onToggleToolExpansion: (String) -&gt; Unit, onToggleThinkingExpansion: (String) -&gt; Unit, onToggleDiffExpansion: (String) -&gt; Unit, onToggleToolArgumentsExpansion: (String) -&gt; Unit, onQuoteReply: (String) -&gt; Unit, onPreviewImage: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:ChatTimeline.kt$@Suppress("MagicNumber") @Composable private fun SwipeToReplyWrapper( onReply: () -&gt; Unit, content: @Composable () -&gt; Unit, )</ID>
+    <ID>LongMethod:HostsScreen.kt$@Composable private fun HostsScreen( state: HostsUiState, onOpenDrawer: () -&gt; Unit, onAddClick: () -&gt; Unit, onEditClick: (HostProfileItem) -&gt; Unit, onDeleteClick: (String) -&gt; Unit, onTestClick: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:MarkdownText.kt$@Composable internal fun MarkdownText( text: String, modifier: Modifier = Modifier, baseColor: Color = MaterialTheme.colorScheme.onSurface, )</ID>
+    <ID>LongMethod:MarkdownText.kt$internal fun parseInlineMarkdown( text: String, colors: MarkdownColors, ): AnnotatedString</ID>
+    <ID>LongMethod:MarkdownText.kt$private fun collectInlineMatches(text: String): List&lt;InlineMatch&gt;</ID>
+    <ID>LongMethod:SessionsScreen.kt$@Composable private fun SessionsScreen( state: SessionsUiState, transientStatusMessage: String?, onOpenDrawer: () -&gt; Unit, callbacks: SessionsScreenCallbacks, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun SettingsScreen( viewModel: SettingsViewModel, transientStatusMessage: String?, onOpenDrawer: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:HostsScreen.kt$( state: HostsUiState, onOpenDrawer: () -&gt; Unit, onAddClick: () -&gt; Unit, onEditClick: (HostProfileItem) -&gt; Unit, onDeleteClick: (String) -&gt; Unit, onTestClick: (String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:PiTextField.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, modifier: Modifier = Modifier, placeholder: String? = null, singleLine: Boolean = true, )</ID>
+    <ID>LongParameterList:SessionsScreen.kt$( groups: List&lt;CwdSessionGroupUiState&gt;, activeSessionPath: String?, isBusy: Boolean, onResumeClick: (SessionRecord) -&gt; Unit, actions: ActiveSessionActionCallbacks, onAddCustomCwd: () -&gt; Unit, )</ID>
+    <ID>LoopWithTooManyJumpStatements:MarkdownText.kt$for</ID>
+    <ID>MagicNumber:ChatHeader.kt$3</ID>
+    <ID>MagicNumber:MarkdownText.kt$3</ID>
+    <ID>MagicNumber:MarkdownText.kt$4</ID>
+    <ID>MagicNumber:MessageCards.kt$12</ID>
+    <ID>MagicNumber:MessageCards.kt$8</ID>
+    <ID>MatchingDeclarationName:ChatInput.kt$PromptControlsCallbacks</ID>
+    <ID>ReturnCount:SessionsViewModel.kt$SessionsViewModel$fun newSessionWithCwd(cwd: String)</ID>
+  </CurrentIssues>
+</SmellBaseline>

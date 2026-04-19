@@ -34,6 +34,7 @@ class CwdChipSelectorTest {
                     ),
                 selectedCwd = "/home/ayagmar/Projects/pi-mobile",
                 onCwdSelected = {},
+                onAddCustomCwd = {},
             )
         }
 
@@ -54,6 +55,7 @@ class CwdChipSelectorTest {
                     ),
                 selectedCwd = "/home/ayagmar/Projects/pi-mobile",
                 onCwdSelected = { cwd -> selected = cwd },
+                onAddCustomCwd = {},
             )
         }
 

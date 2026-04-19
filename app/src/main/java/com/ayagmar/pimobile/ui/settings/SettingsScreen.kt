@@ -8,7 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -33,7 +37,10 @@ import com.ayagmar.pimobile.ui.theme.ThemePreference
 import kotlinx.coroutines.delay
 
 @Composable
-fun SettingsRoute(sessionController: SessionController) {
+fun SettingsRoute(
+    sessionController: SessionController,
+    onOpenDrawer: () -> Unit = {},
+) {
     val context = LocalContext.current
     val factory =
         remember(context, sessionController) {
@@ -61,6 +68,7 @@ fun SettingsRoute(sessionController: SessionController) {
     SettingsScreen(
         viewModel = settingsViewModel,
         transientStatusMessage = transientStatusMessage,
+        onOpenDrawer = onOpenDrawer,
     )
 }
 
@@ -68,6 +76,7 @@ fun SettingsRoute(sessionController: SessionController) {
 private fun SettingsScreen(
     viewModel: SettingsViewModel,
     transientStatusMessage: String?,
+    onOpenDrawer: () -> Unit,
 ) {
     val uiState = viewModel.uiState
 
@@ -80,6 +89,14 @@ private fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(PiSpacing.md),
     ) {
         PiTopBar(
+            navigationIcon = {
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Open navigation",
+                    )
+                }
+            },
             title = {
                 Text(
                     text = "Settings",

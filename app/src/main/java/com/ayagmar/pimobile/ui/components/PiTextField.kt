@@ -12,12 +12,14 @@ fun PiTextField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    placeholder: String? = null,
     singleLine: Boolean = true,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = placeholder?.let { { Text(it) } },
         singleLine = singleLine,
         modifier = modifier.fillMaxWidth(),
     )

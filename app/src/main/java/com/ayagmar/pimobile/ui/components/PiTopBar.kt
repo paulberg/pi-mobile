@@ -1,5 +1,6 @@
 package com.ayagmar.pimobile.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,18 +13,22 @@ fun PiTopBar(
     title: @Composable () -> Unit,
     actions: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    navigationIcon: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
+        Row(
             modifier = Modifier.weight(1f),
-            contentAlignment = Alignment.CenterStart,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            title()
+            navigationIcon?.invoke()
+            Box(contentAlignment = Alignment.CenterStart) {
+                title()
+            }
         }
-
         actions()
     }
 }

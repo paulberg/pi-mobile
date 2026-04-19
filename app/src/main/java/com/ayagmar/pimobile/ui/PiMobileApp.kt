@@ -10,21 +10,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -84,7 +80,7 @@ private val destinations =
         AppDestination(
             route = "chat",
             label = "Chat",
-            icon = Icons.Default.Chat,
+            icon = Icons.AutoMirrored.Filled.Chat,
         ),
         AppDestination(
             route = "settings",
@@ -287,6 +283,10 @@ fun piMobileApp(appGraph: AppGraph) {
             },
         ) {
             Scaffold { paddingValues ->
+                val onOpenDrawer: () -> Unit = {
+                    scope.launch { drawerState.open() }
+                }
+
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
                 ) {
@@ -300,6 +300,7 @@ fun piMobileApp(appGraph: AppGraph) {
                                 profileStore = appGraph.hostProfileStore,
                                 tokenStore = appGraph.hostTokenStore,
                                 diagnostics = appGraph.connectionDiagnostics,
+                                onOpenDrawer = onOpenDrawer,
                             )
                         }
                         composable(route = "sessions") {
@@ -312,49 +313,20 @@ fun piMobileApp(appGraph: AppGraph) {
                                 onNavigateToChat = {
                                     navigateTo("chat")
                                 },
+                                onOpenDrawer = onOpenDrawer,
                             )
                         }
                         composable(route = "chat") {
                             ChatRoute(
                                 sessionController = appGraph.sessionController,
                                 showExtensionStatusStrip = showExtensionStatusStrip,
+                                onOpenDrawer = onOpenDrawer,
                             )
                         }
                         composable(route = "settings") {
-                            SettingsRoute(sessionController = appGraph.sessionController)
-                        }
-                    }
-
-                    Surface(
-                        shape = CircleShape,
-                        tonalElevation = 3.dp,
-                        shadowElevation = 6.dp,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                        modifier =
-                            Modifier
-                                .align(Alignment.CenterStart)
-                                .offset(x = (-8).dp),
-                    ) {
-                        FilledTonalIconButton(
-                            modifier = Modifier.size(34.dp),
-                            onClick = {
-                                scope.launch {
-                                    if (drawerState.isOpen) {
-                                        drawerState.close()
-                                    } else {
-                                        drawerState.open()
-                                    }
-                                }
-                            },
-                        ) {
-                            Icon(
-                                imageVector = if (drawerState.isOpen) Icons.Default.MenuOpen else Icons.Default.Menu,
-                                contentDescription =
-                                    if (drawerState.isOpen) {
-                                        "Close left navigation"
-                                    } else {
-                                        "Open left navigation"
-                                    },
+                            SettingsRoute(
+                                sessionController = appGraph.sessionController,
+                                onOpenDrawer = onOpenDrawer,
                             )
                         }
                     }
