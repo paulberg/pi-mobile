@@ -29,7 +29,7 @@ if [[ ! -d node_modules ]]; then
 fi
 
 if [[ -z "${BRIDGE_AUTH_TOKEN:-}" ]]; then
-  echo "pi-mobile-bridge: BRIDGE_AUTH_TOKEN is required; set it in /etc/pi-mobile-bridge.env" >&2
+  echo "pi-mobile-bridge: BRIDGE_AUTH_TOKEN is required; set it in /etc/pi-mobile-bridge/<user>.env" >&2
   exit 1
 fi
 

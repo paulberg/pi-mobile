@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -174,22 +175,23 @@ class WebSocketTransport(
         }
     }
 
-    private suspend fun consumeConnection(openedConnection: ActiveConnection): Boolean {
-        activeConnection = openedConnection
-        state.value = ConnectionState.CONNECTED
+    private suspend fun consumeConnection(openedConnection: ActiveConnection): Boolean =
+        coroutineScope {
+            activeConnection = openedConnection
+            state.value = ConnectionState.CONNECTED
 
-        val senderJob =
-            scope.launch {
-                forwardOutboundMessages(openedConnection)
-            }
+            val senderJob =
+                launch {
+                    forwardOutboundMessages(openedConnection)
+                }
 
-        openedConnection.closed.await()
-        senderJob.cancel()
-        senderJob.join()
-        activeConnection = null
+            openedConnection.closed.await()
+            senderJob.cancel()
+            senderJob.join()
+            activeConnection = null
 
-        return lifecycleMutex.withLock { !explicitDisconnect && target != null }
-    }
+            lifecycleMutex.withLock { !explicitDisconnect && target != null }
+        }
 
     private suspend fun openConnection(target: WebSocketTarget): ActiveConnection? {
         val opened = CompletableDeferred<WebSocket>()

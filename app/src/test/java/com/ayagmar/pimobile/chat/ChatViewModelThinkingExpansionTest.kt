@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -31,11 +32,14 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelThinkingExpansionTest {
-    private val dispatcher = StandardTestDispatcher()
+    private lateinit var dispatcher: TestDispatcher
     private val viewModels = mutableListOf<ChatViewModel>()
 
     @Before
     fun setUp() {
+        // Fresh dispatcher per test so an exception leaked into the scheduler by one test
+        // cannot surface as UncaughtExceptionsBeforeTest on the next test in the class.
+        dispatcher = StandardTestDispatcher()
         Dispatchers.setMain(dispatcher)
         viewModels.clear()
     }
