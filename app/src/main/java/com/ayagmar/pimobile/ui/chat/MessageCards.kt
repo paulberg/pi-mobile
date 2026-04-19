@@ -174,11 +174,13 @@ private fun UserCard(
                 style = MaterialTheme.typography.titleSmall,
                 color = chatColors.onUserContainer,
             )
-            Text(
-                text = text.ifBlank { "(empty)" },
-                style = MaterialTheme.typography.bodyMedium,
-                color = chatColors.onUserContainer,
-            )
+            SelectionContainer {
+                Text(
+                    text = text.ifBlank { "(empty)" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = chatColors.onUserContainer,
+                )
+            }
 
             if (imageUris.isNotEmpty()) {
                 LazyRow(
@@ -324,22 +326,26 @@ private fun AssistantMessageContent(
 ) {
     val chatColors = LocalChatColors.current
     if (text.isBlank()) {
-        Text(
-            text = "(empty)",
-            style = MaterialTheme.typography.bodyMedium,
-            color = chatColors.onAssistantContainer,
-            modifier = modifier,
-        )
+        SelectionContainer {
+            Text(
+                text = "(empty)",
+                style = MaterialTheme.typography.bodyMedium,
+                color = chatColors.onAssistantContainer,
+                modifier = modifier,
+            )
+        }
         return
     }
 
     // Fast path: no code fences — render with block-level markdown (headers, lists, etc.)
     if (!text.contains("```")) {
-        MarkdownText(
-            text = text,
-            modifier = modifier,
-            baseColor = chatColors.onAssistantContainer,
-        )
+        SelectionContainer {
+            MarkdownText(
+                text = text,
+                modifier = modifier,
+                baseColor = chatColors.onAssistantContainer,
+            )
+        }
         return
     }
 
@@ -353,10 +359,12 @@ private fun AssistantMessageContent(
             when (block) {
                 is AssistantMessageBlock.Paragraph -> {
                     if (block.text.isNotBlank()) {
-                        MarkdownText(
-                            text = block.text,
-                            baseColor = chatColors.onAssistantContainer,
-                        )
+                        SelectionContainer {
+                            MarkdownText(
+                                text = block.text,
+                                baseColor = chatColors.onAssistantContainer,
+                            )
+                        }
                     }
                 }
 
@@ -601,11 +609,13 @@ private fun ThinkingBlock(
                     )
                 }
             }
-            Text(
-                text = displayThinking,
-                style = MaterialTheme.typography.bodyMedium,
-                color = chatColors.onThinkingContainer,
-            )
+            SelectionContainer {
+                Text(
+                    text = displayThinking,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = chatColors.onThinkingContainer,
+                )
+            }
 
             if (shouldCollapse || isThinkingExpanded) {
                 TextButton(
