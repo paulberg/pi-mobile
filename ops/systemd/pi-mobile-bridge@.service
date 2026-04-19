@@ -1,0 +1,31 @@
+[Unit]
+Description=Pi Mobile Bridge (%i)
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+Environment="HOME=/home/%i"
+Environment="USER=%i"
+Environment="LOGNAME=%i"
+Environment="PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=-/etc/pi-mobile-bridge/%i.env
+ExecStartPre=/usr/bin/bash -lc 'command -v pi >/dev/null'
+ExecStartPre=/usr/bin/bash -lc 'test -n "${PI_MOBILE_REPO_DIR:-}"'
+ExecStartPre=/usr/bin/bash -lc 'test -d "${PI_MOBILE_REPO_DIR}/bridge/node_modules"'
+ExecStart=/usr/bin/bash -lc 'exec "${PI_MOBILE_REPO_DIR}/bridge/scripts/systemd-start.sh"'
+Restart=always
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=30
+KillSignal=SIGINT
+UMask=0077
+SyslogIdentifier=pi-mobile-bridge
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
