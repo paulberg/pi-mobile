@@ -79,6 +79,7 @@ class RpcSessionController(
     private val connectionFactory: () -> PiRpcConnection = { PiRpcConnection() },
     private val connectTimeoutMs: Long = DEFAULT_TIMEOUT_MS,
     private val requestTimeoutMs: Long = DEFAULT_TIMEOUT_MS,
+    clientIdProvider: () -> String = { UUID.randomUUID().toString() },
 ) : SessionController {
     private val mutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -90,7 +91,7 @@ class RpcSessionController(
     private var activeConnection: PiRpcConnection? = null
     private var activeContext: ActiveConnectionContext? = null
     private var transportPreference: TransportPreference = TransportPreference.AUTO
-    private val clientId: String = UUID.randomUUID().toString()
+    private val clientId: String = clientIdProvider()
     private var rpcEventsJob: Job? = null
     private var connectionStateJob: Job? = null
     private var streamingMonitorJob: Job? = null

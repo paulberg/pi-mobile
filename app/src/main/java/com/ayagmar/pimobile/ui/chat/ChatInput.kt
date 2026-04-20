@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,20 +31,15 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -103,8 +97,27 @@ internal fun PromptControls(
     pendingImages: List<PendingImage>,
     callbacks: PromptControlsCallbacks,
 ) {
-    var showSteerDialog by remember { mutableStateOf(false) }
-    var showFollowUpDialog by remember { mutableStateOf(false) }
+    val trimmedInput = inputText.trim()
+
+    // Send while the agent is running has the same semantics as sending a fresh prompt once
+    // the turn ends, so we treat it as a queued follow-up. When idle, it's a normal send.
+    val submit: () -> Unit = {
+        if (isStreaming || isRetrying) {
+            if (trimmedInput.isNotEmpty()) {
+                callbacks.onFollowUp(trimmedInput)
+                callbacks.onInputTextChanged("")
+            }
+        } else {
+            callbacks.onSendPrompt()
+        }
+    }
+
+    val steer: () -> Unit = {
+        if (trimmedInput.isNotEmpty()) {
+            callbacks.onSteer(trimmedInput)
+            callbacks.onInputTextChanged("")
+        }
+    }
 
     Column(
         modifier =
@@ -112,22 +125,8 @@ internal fun PromptControls(
                 .fillMaxWidth()
                 .testTag(CHAT_PROMPT_CONTROLS_TAG)
                 .animateContentSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        AnimatedVisibility(
-            visible = isStreaming || isRetrying,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-        ) {
-            StreamingControls(
-                isRetrying = isRetrying,
-                onAbort = callbacks.onAbort,
-                onAbortRetry = callbacks.onAbortRetry,
-                onSteerClick = { showSteerDialog = true },
-                onFollowUpClick = { showFollowUpDialog = true },
-            )
-        }
-
         AnimatedVisibility(
             visible = isStreaming && pendingQueueItems.isNotEmpty(),
             enter = fadeIn() + expandVertically(),
@@ -147,106 +146,85 @@ internal fun PromptControls(
             isStreaming = isStreaming,
             pendingImages = pendingImages,
             onInputTextChanged = callbacks.onInputTextChanged,
-            onSendPrompt = callbacks.onSendPrompt,
+            onSendPrompt = submit,
             onShowCommandPalette = callbacks.onShowCommandPalette,
             onAddImage = callbacks.onAddImage,
             onRemoveImage = callbacks.onRemoveImage,
         )
-    }
 
-    if (showSteerDialog) {
-        SteerFollowUpDialog(
-            title = "Steer",
-            onDismiss = { showSteerDialog = false },
-            onConfirm = { message ->
-                callbacks.onSteer(message)
-                showSteerDialog = false
-            },
-        )
-    }
-
-    if (showFollowUpDialog) {
-        SteerFollowUpDialog(
-            title = "Follow Up",
-            onDismiss = { showFollowUpDialog = false },
-            onConfirm = { message ->
-                callbacks.onFollowUp(message)
-                showFollowUpDialog = false
-            },
+        // Persistent strip below the input: Abort (→ Abort Retry while retrying) plus Steer.
+        // Always mounted so a run starting doesn't reflow the prompt; buttons just toggle
+        // enabled state. Follow Up is folded into the Send button above.
+        StreamingControls(
+            isActive = isStreaming || isRetrying,
+            isRetrying = isRetrying,
+            canSteer = (isStreaming || isRetrying) && trimmedInput.isNotEmpty(),
+            onAbort = callbacks.onAbort,
+            onAbortRetry = callbacks.onAbortRetry,
+            onSteerClick = steer,
         )
     }
 }
 
-@Suppress("LongMethod")
+@Suppress("LongParameterList")
 @Composable
 private fun StreamingControls(
+    isActive: Boolean,
     isRetrying: Boolean,
+    canSteer: Boolean,
     onAbort: () -> Unit,
     onAbortRetry: () -> Unit,
     onSteerClick: () -> Unit,
-    onFollowUpClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().testTag(CHAT_STREAMING_CONTROLS_TAG),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Button(
-                onClick = onAbort,
-                modifier = Modifier.weight(1f),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                    ),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Stop,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 4.dp),
-                )
-                Text(
-                    text = "Abort",
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+    val abortLabel = if (isRetrying) "Abort Retry" else "Abort"
+    val abortOnClick: () -> Unit = if (isRetrying) onAbortRetry else onAbort
 
-            if (isRetrying) {
-                OutlinedButton(
-                    onClick = onAbortRetry,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(text = "Abort Retry", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                }
-            }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .testTag(CHAT_STREAMING_CONTROLS_TAG),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextButton(
+            onClick = abortOnClick,
+            enabled = isActive,
+            modifier = Modifier.weight(1f),
+            colors =
+                ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Stop,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = abortLabel,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 4.dp),
+            )
         }
 
-        if (!isRetrying) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedButton(
-                    onClick = onSteerClick,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(text = "Steer", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                }
-
-                OutlinedButton(
-                    onClick = onFollowUpClick,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(text = "Follow Up", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                }
-            }
+        TextButton(
+            onClick = onSteerClick,
+            enabled = canSteer,
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+        ) {
+            Text(
+                text = "Steer",
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -410,11 +388,12 @@ internal fun PromptInputRow(
                 value = inputText,
                 onValueChange = onInputTextChanged,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message...") },
+                placeholder = {
+                    Text(if (isStreaming) "Type a follow-up..." else "Type a message...")
+                },
                 singleLine = false,
                 maxLines = 8,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-                enabled = !isStreaming,
                 trailingIcon = {
                     if (inputText.isEmpty() && !isStreaming) {
                         IconButton(onClick = onShowCommandPalette) {
@@ -429,7 +408,11 @@ internal fun PromptInputRow(
 
             IconButton(
                 onClick = submitPrompt,
-                enabled = (inputText.isNotBlank() || pendingImages.isNotEmpty()) && !isStreaming,
+                // While streaming, Send queues a text-only follow-up; images can only ride
+                // along with a normal send when idle.
+                enabled =
+                    inputText.isNotBlank() ||
+                        (!isStreaming && pendingImages.isNotEmpty()),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
@@ -587,62 +570,6 @@ private fun ImagePreviewDialog(
                     contentDescription = "Close image preview",
                     tint = Color.White,
                 )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SteerFollowUpDialog(
-    title: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    var text by rememberSaveable { mutableStateOf("") }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-            )
-
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                placeholder = { Text("Enter your message...") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                maxLines = 6,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-                Button(
-                    onClick = { onConfirm(text) },
-                    enabled = text.isNotBlank(),
-                ) {
-                    Text("Send")
-                }
             }
         }
     }
